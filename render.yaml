@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: configurable-investment-risk-radar
+    env: docker
+    plan: free
+    healthCheckPath: /api/v1/datasources/health
+    envVars:
+      - key: FUYAO_API_KEY
+        sync: false
+      - key: IFIND_API_KEY
+        sync: false
+      - key: FUYAO_API_BASE
+        value: https://fuyao.aicubes.cn
+      - key: IFIND_MCP_BASE
+        value: https://api-mcp.51ifind.com:8643/ds-mcp-servers
+      - key: ENABLE_HIGH_FIDELITY_FALLBACK
+        value: "true"
+      - key: SCHEDULER_TICK_SECONDS
+        value: "30"

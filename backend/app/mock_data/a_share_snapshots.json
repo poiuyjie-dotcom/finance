@@ -1,0 +1,45 @@
+{
+  "_meta": {
+    "description": "离线/无密钥高仿真回退数据。数据形态与扶摇 REST 返回结构一致，仅用于降级演示与自动化测试。",
+    "note": "真实运行时优先调用扶摇 API 与 iFinD MCP；本文件数据不作为投资依据。"
+  },
+  "quotes": {
+    "300750.SZ": {"name": "宁德时代", "last_price": 288.35, "price_change_ratio_pct": -2.52, "volume": 33459123, "turnover": 9623451234, "open_price": 291.1, "high_price": 293.4, "low_price": 286.9, "prev_price": 295.8, "turnover_rate_pct": 0.79},
+    "002594.SZ": {"name": "比亚迪", "last_price": 246.8, "price_change_ratio_pct": 1.15, "volume": 51234000, "turnover": 12580600000, "open_price": 243.2, "high_price": 248.6, "low_price": 242.5, "prev_price": 244.0, "turnover_rate_pct": 1.76},
+    "600519.SH": {"name": "贵州茅台", "last_price": 1286.0, "price_change_ratio_pct": 0.87, "volume": 2377273, "turnover": 3045608000, "open_price": 1270.1, "high_price": 1286.75, "low_price": 1266.0, "prev_price": 1274.89, "turnover_rate_pct": 0.19}
+  },
+  "index_quotes": {
+    "000300.SH": {"name": "沪深300", "last_price": 4217.68, "price_change_ratio_pct": -1.36, "turnover": 368451240000, "prev_price": 4275.68},
+    "000001.SH": {"name": "上证指数", "last_price": 3767.23, "price_change_ratio_pct": -0.87, "turnover": 662491840000, "prev_price": 3800.35}
+  },
+  "valuations": {
+    "300750.SZ": {"pe_ttm": 15.25, "pe_mrq": 14.97, "pb_mrq": 3.42},
+    "002594.SZ": {"pe_ttm": 18.9, "pe_mrq": 18.4, "pb_mrq": 4.1},
+    "600519.SH": {"pe_ttm": 20.1, "pe_mrq": 19.8, "pb_mrq": 7.9}
+  },
+  "index_valuations": {
+    "000300.SH": {"pe_ttm": 13.10}
+  },
+  "hot_list": [
+    {"thscode": "605577.SH", "name": "龙版传媒", "rank": 1, "heat": 3995385, "rank_change": 0},
+    {"thscode": "600127.SH", "name": "金健米业", "rank": 2, "heat": 3861912, "rank_change": 0},
+    {"thscode": "002639.SZ", "name": "雪人股份", "rank": 3, "heat": 3510000, "rank_change": 1},
+    {"thscode": "300750.SZ", "name": "宁德时代", "rank": 4, "heat": 3320000, "rank_change": 2},
+    {"thscode": "002594.SZ", "name": "比亚迪", "rank": 8, "heat": 2800000, "rank_change": -1}
+  ],
+  "futures": {
+    "碳酸锂": {"code": "LC主连", "pct_chg": -4.35},
+    "螺纹钢": {"code": "RB主连", "pct_chg": -0.62}
+  },
+  "calendar": {
+    "trading_days_recent": ["20261009", "20261012", "20261013", "20261014"],
+    "next_earnings_dates": {"300750.SZ": "20261028", "002594.SZ": "20261030", "600519.SH": "20261101"}
+  },
+  "announcements": {
+    "300750.SZ": [
+      {"title": "宁德时代：关于部分限售股份上市流通的提示性公告", "publish_time": "2026-10-13 19:22:00", "keyword": "解禁"}
+    ],
+    "002594.SZ": [],
+    "600519.SH": []
+  }
+}
