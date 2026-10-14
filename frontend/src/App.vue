@@ -55,6 +55,10 @@ onUnmounted(() => clearInterval(timer))
         <span class="dot" :class="health.ifind.status === 'HEALTHY' ? 'dot-green' : health.ifind.status === 'ERROR' ? 'dot-red' : 'dot-gray'"></span>
         iFinD MCP · {{ health.ifind.status === 'HEALTHY' ? '正常' : health.ifind.status === 'ERROR' ? '异常' : '未知' }}
       </span>
+      <span class="chip" v-if="health?.jev?.enabled" title="Jev 系统一模型：结构化语义判断（合规护栏 + 公告情绪归因）">
+        <span class="dot" :class="health.jev.status === 'HEALTHY' ? 'dot-green' : health.jev.status === 'ERROR' ? 'dot-red' : 'dot-gray'"></span>
+        Jev 语义引擎 · {{ health.jev.status === 'HEALTHY' ? '正常' : health.jev.status === 'ERROR' ? '异常' : '待调用' }}
+      </span>
       <span class="chip" v-if="health">
         <span class="dot" :class="health.trading_calendar.is_trading_day ? 'dot-green' : 'dot-gray'"></span>
         {{ health.trading_calendar.is_trading_day ? '交易日' : '非交易日' }} · {{ PHASE_CN[health.trading_calendar.market_phase] || health.trading_calendar.market_phase }}

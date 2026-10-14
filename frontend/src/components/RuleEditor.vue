@@ -134,6 +134,16 @@ async function doRollback(v) {
     <div v-if="parseResult?.compliance_notice && parseResult.compliance_passed" class="banner banner-warn" style="margin-top:9px">
       ⚠️ {{ parseResult.compliance_notice }}
     </div>
+    <!-- Jev 语义护栏结果 -->
+    <div v-if="parseResult?.jev" class="banner banner-info" style="margin-top:8px; font-size:11px">
+      🧠 <b>Jev 语义护栏</b>（{{ parseResult.jev.model }}）：
+      预测/荐股意图概率 <b>{{ (parseResult.jev.wants_prediction ?? 0).toFixed(2) }}</b> ·
+      意图分类 <b>{{ {objective_monitor: '客观监控', mixed: '混合意图', pure_advice_request: '纯违规诉求'}[parseResult.jev.intent] || parseResult.jev.intent }}</b>
+      <template v-if="parseResult.jev.intent_confidence != null">
+        （置信度 {{ parseResult.jev.intent_confidence.toFixed(2) }}）
+      </template>
+      <span style="color:var(--dim)">—— 概率由 Jev 输出，拦截/放行决策由确定性代码执行</span>
+    </div>
     <div v-if="errMsg" class="banner banner-bad" style="margin-top:9px">解析失败：{{ errMsg }}</div>
   </div>
 

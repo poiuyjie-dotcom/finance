@@ -18,6 +18,7 @@ class NLParseResponse(BaseModel):
     rejected_reason: str = ""
     used_llm: bool = False
     draft_rule: UnifiedMonitorRule | None = None
+    jev: dict | None = Field(default=None, description="Jev 语义护栏结果（未配置/不可用时为 null）")
 
 
 class TaskCreateRequest(BaseModel):

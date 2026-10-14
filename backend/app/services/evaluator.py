@@ -91,6 +91,18 @@ async def evaluate_condition(cond: ConditionLeaf) -> ConditionEvaluationDetail:
                 reason = "近24小时公告检索未命中任何关键词"
         cit = _citation(res, "hit_titles", (res.data or {}).get("hit_titles") if res.data else None,
                         "篇", "近24小时公告标题与正文关键词匹配", tol)
+        # Jev 情绪归因（可选）：仅增强解释，不改变 is_met 的确定性判定
+        if matched:
+            from . import jev_client
+            if jev_client.is_enabled():
+                sem = await jev_client.announcement_sentiment(
+                    (res.data or {}).get("hit_titles") or [],
+                    thr if isinstance(thr, list) else [str(thr)])
+                if sem:
+                    reason += (f"｜Jev 语义归因：{sem['sentiment']}"
+                               f"（置信度 {sem['sentiment_confidence']:.2f}，重大利空概率 {sem['material_negative_p']:.2f}）")
+                    cit.raw_value = {"hit_titles": (res.data or {}).get("hit_titles"),
+                                     "jev_sentiment": sem}
         return ConditionEvaluationDetail(
             condition_id=cond.condition_id, label=cond.label, is_met=is_met,
             actual_value_display=("命中" if matched else "未命中") if matched is not None else "数据异常",

@@ -5,6 +5,7 @@ import tempfile
 os.environ["FUYAO_API_KEY"] = ""
 os.environ["IFIND_API_KEY"] = ""
 os.environ["LLM_API_KEY"] = ""
+os.environ["JEV_API_KEY"] = ""
 os.environ["ENABLE_HIGH_FIDELITY_FALLBACK"] = "true"
 
 _tmpdir = tempfile.mkdtemp(prefix="radar_test_")

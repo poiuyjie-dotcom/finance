@@ -314,17 +314,46 @@ DataSourceType[FUYAO_QUOTE,FUYAO_VALUATION,FUYAO_CALENDAR,FUYAO_HOTLIST,IFIND_AN
 
 
 async def compile_nl(nl_query: str) -> dict:
-    """总入口：合规前置检查 -> LLM(可选) -> 确定性解析兜底。"""
+    """总入口：确定性正则前置拦截 -> Jev 语义护栏（可选）-> LLM(可选) -> 确定性解析兜底。
+
+    Jev 只提供校准概率，拦截/放行决策全部由代码规则执行；Jev 不可用时静默回退正则-only。
+    """
     guard = check_input(nl_query)
-    if not guard["passed"]:
-        return {"compliance_passed": False, "compliance_notice": guard["rejected_reason"],
-                "compliance_stripped_terms": [], "rejected_reason": guard["rejected_reason"],
-                "used_llm": False, "draft_rule": None}
+    jev_info: dict | None = None
+
+    # ---- Jev 语义第二道闸（可选，与正则独立并行判定，结论由代码合并）----
+    from . import jev_client
+    if jev_client.is_enabled():
+        sem = await jev_client.semantic_compliance_check(nl_query)
+        if sem is not None:
+            jev_info = sem
+            from .compliance_guard import AUDIT_LOG
+            AUDIT_LOG.append({"rule": "JEV_SEMANTIC_CHECK", "input": nl_query[:100],
+                              "intent": sem["intent"], "wants_prediction": sem["wants_prediction"]})
+    jev_reject = bool(jev_info and jev_info["intent"] == "pure_advice_request"
+                      and (jev_info["wants_prediction"] or 0) > 0.8)
+
+    if not guard["passed"] or jev_reject:
+        parts = []
+        if not guard["passed"]:
+            parts.append("确定性规则护栏：" + guard["rejected_reason"])
+        if jev_reject:
+            parts.append(f"语义护栏（Jev 系统一模型）：判定为纯预测/荐股诉求"
+                         f"（预测意图概率 {jev_info['wants_prediction']:.2f}，意图置信度 {jev_info['intent_confidence']:.2f}）")
+        notice = "；".join(parts)
+        return {"compliance_passed": False, "compliance_notice": notice,
+                "compliance_stripped_terms": [], "rejected_reason": notice,
+                "used_llm": False, "draft_rule": None, "jev": jev_info}
 
     notice = ""
     if guard["stripped_terms"]:
         notice = (f"检测到主观交易表述「{'、'.join(guard['stripped_terms'])}」，已自动剥离。"
                   "本系统不提供抄底、买卖等建议，仅保留客观监控条件。")
+    if jev_info and jev_info["intent"] == "mixed" and not guard["stripped_terms"]:
+        notice = (f"语义护栏（Jev）判定为混合意图（置信度 {jev_info['intent_confidence']:.2f}），"
+                  "已仅保留客观监控条件，剥离主观交易表述。")
+    elif jev_info and jev_info["intent"] == "objective_monitor" and not notice:
+        notice = f"语义护栏（Jev）确认输入为客观监控意图（预测意图概率 {(jev_info['wants_prediction'] or 0):.2f}）。"
 
     rule = await _llm_compile(guard["cleaned_text"] or nl_query)
     used_llm = rule is not None
@@ -335,7 +364,7 @@ async def compile_nl(nl_query: str) -> dict:
         if not ok and not guard["stripped_terms"]:
             return {"compliance_passed": True, "compliance_notice": notice or "解析提示见 ai_interpretation_summary",
                     "compliance_stripped_terms": guard["stripped_terms"], "rejected_reason": "",
-                    "used_llm": False, "draft_rule": rule}
+                    "used_llm": False, "draft_rule": rule, "jev": jev_info}
     return {"compliance_passed": True, "compliance_notice": notice,
             "compliance_stripped_terms": guard["stripped_terms"], "rejected_reason": "",
-            "used_llm": used_llm, "draft_rule": rule}
+            "used_llm": used_llm, "draft_rule": rule, "jev": jev_info}

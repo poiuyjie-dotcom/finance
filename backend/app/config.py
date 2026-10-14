@@ -18,6 +18,10 @@ LLM_API_KEY = os.getenv("LLM_API_KEY", "")
 LLM_BASE_URL = os.getenv("LLM_BASE_URL", "")
 LLM_MODEL = os.getenv("LLM_MODEL", "")
 
+# Jev（TypeSafe System One）可选：结构化语义判断（合规护栏增强 + 公告情绪归因）
+JEV_API_KEY = os.getenv("JEV_API_KEY", "")
+JEV_MODEL = os.getenv("JEV_MODEL", "jev-latest")
+
 DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{BACKEND_DIR / 'radar.db'}")
 
 # 无密钥时启用本地高仿真回退数据，保证演示与测试可用
