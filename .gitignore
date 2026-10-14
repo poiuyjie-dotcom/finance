@@ -11,9 +11,8 @@ backend/radar.db
 
 # Node
 frontend/node_modules/
-frontend/dist/
 
-# 构建产物（Docker 内重新生成）
+# 本地构建产物目录（Docker 构建用）；frontend/dist 为提交的预构建静态产物，供纯 Python 启动直接托管
 frontend_dist/
 
 # 测试与临时

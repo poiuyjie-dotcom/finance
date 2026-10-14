@@ -4,14 +4,28 @@
 >
 > **本产品不输出涨跌预测、收益承诺或买卖建议；事实、推断与不确定信息严格区分。**
 
-- **在线演示 URL**：（部署后填入 Render / Railway 公网链接）
-- **演示视频**：60–180 秒实操演示（部署后录制填入链接）
+## 1. 快速启动（一键）
 
-## 1. 快速启动
+```bash
+git clone https://github.com/sodium02624-art/finance.git
+cd finance
+bash start.sh          # Windows 双击 start.bat
+# 浏览器打开 http://localhost:8000
+```
 
-### 1.1 环境变量
+`start.sh` 自动完成：创建虚拟环境 → 安装依赖 → 启动服务（前端静态产物已随仓库提交，**无需 Node / 无需 Docker / 无需构建**）。
 
-复制 `backend/.env.example` 为 `backend/.env`（仓库中不含任何真实密钥）：
+手动等价操作：
+
+```bash
+pip install -r backend/requirements.txt
+uvicorn app.main:app --port 8000 --app-dir backend
+```
+
+### 1.1 环境变量（可选）
+
+不配置任何密钥即可运行（自动走高仿真回退数据，界面显式标注"离线演示，非实时"）。
+如需接入实时数据，复制 `backend/.env.example` 为 `backend/.env`：
 
 ```ini
 FUYAO_API_KEY=      # 扶摇 API Key（https://fuyao.aicubes.cn/admin 免费签发）
@@ -19,38 +33,20 @@ IFIND_API_KEY=      # iFinD MCP 密钥（https://mcp.51ifind.com 个人中心-�
 LLM_API_KEY=        # 可选：OpenAI 兼容 LLM，启用 NL 编译增强通道
 LLM_BASE_URL=
 LLM_MODEL=
-ENABLE_HIGH_FIDELITY_FALLBACK=true   # 无密钥/接口失败时的高仿真回退（显式标注，不静默）
+ENABLE_HIGH_FIDELITY_FALLBACK=true
 ```
 
-> **不配置任何密钥也能运行**：系统自动走「本地高仿真回退数据」，所有结论显式标注"离线演示，非实时"，用于演示降级行为，绝不伪装实时正常。
-
-### 1.2 本地开发（前后端分离）
+### 1.2 前后端分离开发模式（可选）
 
 ```bash
 # 后端（端口 8000）
-cd backend
-python -m venv .venv && . .venv/bin/activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
+cd backend && uvicorn app.main:app --reload --port 8000
 
-# 前端（端口 5173，/api 代理到 8000）
-cd frontend
-npm install
-npm run dev
+# 前端（端口 5173，/api 代理到 8000；改完 npm run build 会输出到 frontend/dist）
+cd frontend && npm install && npm run dev
 ```
 
-### 1.3 生产部署（单容器，后端托管前端静态产物）
-
-```bash
-docker compose up --build -d
-# 访问 http://localhost:8000 即完整产品
-```
-
-### 1.4 Render 一键部署
-
-根目录 `render.yaml` 为 Render Blueprint 配置：Docker 环境、健康检查 `/api/v1/datasources/health`，`FUYAO_API_KEY` / `IFIND_API_KEY` 在控制台注入（sync: false，不入库）。
-
-### 1.5 运行测试
+### 1.3 运行测试
 
 ```bash
 cd backend && pytest -v tests/    # 11 个用例：主链路 / 异常降级 / 合规边界
@@ -162,8 +158,8 @@ alpharadar/
 │   │   ├── routers/                # tasks / datasources / simulator
 │   │   └── mock_data/              # 高仿真离线回退数据（显式标注）
 │   └── tests/                      # 11 个用例：主链路/降级/合规
-├── frontend/                       # Vue 3 + Vite SPA（三栏工作台）
-├── Dockerfile / docker-compose.yml / render.yaml
+├── frontend/                       # Vue 3 + Vite SPA（三栏工作台；dist/ 为随仓库提交的预构建产物）
+├── start.sh / start.bat            # 一键安装并启动
 ├── README.md / AI_USAGE_AND_VERIFICATION.md / TEST_SPECIFICATION.md
 └── backend/.env.example
 ```

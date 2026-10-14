@@ -48,9 +48,15 @@ app.include_router(datasources.router, prefix="/api/v1/datasources", tags=["data
 app.include_router(simulator.router, prefix="/api/v1/simulator", tags=["simulator"])
 
 
-# ---- 生产环境：挂载前端编译产物（单容器部署，无跨域）----
-frontend_dist = Path(__file__).resolve().parent.parent.parent / "frontend_dist"
-if frontend_dist.exists():
+# ---- 生产环境：托管前端静态产物（单进程，无跨域）----
+# 优先使用本地构建目录 frontend_dist（存在则说明是 Docker/本地 npm run build 产物），
+# 否则回退到仓库内已提交的预构建产物 frontend/dist，保证「pip install + uvicorn」即可完整运行
+_candidates = [
+    Path(__file__).resolve().parent.parent.parent / "frontend_dist",
+    Path(__file__).resolve().parent.parent.parent / "frontend" / "dist",
+]
+frontend_dist = next((p for p in _candidates if p.exists() and (p / "index.html").exists()), None)
+if frontend_dist:
     app.mount("/assets", StaticFiles(directory=str(frontend_dist / "assets")), name="assets")
 
     @app.get("/{full_path:path}")
