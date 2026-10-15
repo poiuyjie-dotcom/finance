@@ -7,8 +7,6 @@ const emit = defineEmits(['changed', 'refreshDetail'])
 
 const citation = ref(null)   // 溯源弹层
 const expandedId = ref(null) // 展开长解释的条件
-const manualValue = ref('')  // 人工确认值输入
-const resolving = ref(false)
 
 const OUTCOME_CN = {
   TRIGGERED_ALERT: { cls: 'badge-red', txt: '已触发提醒' },
@@ -37,23 +35,6 @@ const problemCount = computed(() => (latest.value?.condition_details || []).filt
 
 function toggleExpand(id) {
   expandedId.value = expandedId.value === id ? null : id
-}
-
-// ---- 数据异常处理卡片 ----
-const conflictConds = computed(() => (latest.value?.condition_details || [])
-  .filter(d => d.citation.conflict_with && !d.citation.conflict_with.resolved_by))
-const taskHalted = computed(() => props.selectedTask?.task?.status === 'ERROR_HALT')
-const showIncident = computed(() => conflictConds.value.length > 0 || taskHalted.value)
-const resolution = computed(() => props.selectedTask?.task?.conflict_resolution || null)
-
-async function resolve(mode, conditionId = null, value = null) {
-  if (!props.selectedTask) return
-  resolving.value = true
-  try {
-    await api.resolveConflict(props.selectedTask.task.id,
-      { mode, condition_id: conditionId, value })
-    emit('changed'); emit('refreshDetail', props.selectedTask.task.id)
-  } finally { resolving.value = false }
 }
 
 async function runNow() {
@@ -99,44 +80,6 @@ async function runNow() {
         </div>
       </div>
 
-      <!-- 数据异常处理卡片：供用户确认（选信任源 / 填确认值 / 撤销） -->
-      <div v-if="showIncident" class="incident-card">
-        <div class="incident-title">⚠️ 数据异常 · 待你确认
-          <span style="font-weight:400; font-size:11px; color:var(--dim)">系统默认挂起不猜，由你裁决后立即按裁决重评估</span>
-        </div>
-
-        <!-- 当前裁决状态 -->
-        <div v-if="resolution" class="incident-cur">
-          当前裁决：<b>{{ {TRUST_PRIMARY: '以主源（扶摇）为准', TRUST_BACKUP: '以备源（iFinD）为准',
-            MANUAL: `手工确认值 ${resolution.value}`}[resolution.mode] || resolution.mode }}</b>
-          （{{ (resolution.set_at || '').replace('T', ' ').slice(5, 16) }} 设置）
-          <button class="mini danger" :disabled="resolving" @click="resolve('CLEAR')">撤销裁决</button>
-        </div>
-
-        <!-- 双源冲突：选源 / 填值 -->
-        <div v-for="d in conflictConds" :key="'ic' + d.condition_id" class="incident-body">
-          <div style="margin-bottom:6px">
-            <b>{{ d.condition_id }} · {{ d.label }}</b>：
-            扶摇 <b>{{ d.citation.raw_value }}</b> vs {{ d.citation.conflict_with.source }}
-            <b>{{ d.citation.conflict_with.value }}</b>（偏差 {{ d.citation.conflict_with.diff_pct }}%）
-          </div>
-          <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center">
-            <button class="mini primary" :disabled="resolving" @click="resolve('TRUST_PRIMARY')">以扶摇为准</button>
-            <button class="mini primary" :disabled="resolving" @click="resolve('TRUST_BACKUP')">以 iFinD 为准</button>
-            <input v-model="manualValue" type="number" step="0.01" :placeholder="`手工填入确认值（${d.citation.unit}）`"
-                   style="width:170px; padding:3px 7px; font-size:12px" />
-            <button class="mini" :disabled="resolving || manualValue === ''"
-                    @click="resolve('MANUAL', d.condition_id, Number(manualValue))">用此值判定</button>
-          </div>
-        </div>
-
-        <!-- 熔断恢复 -->
-        <div v-if="taskHalted" class="incident-body">
-          任务因连续数据失败熔断（ERROR_HALT）。确认数据源恢复后可解除：
-          <button class="mini primary" :disabled="resolving" @click="resolve('CLEAR')">解除熔断并恢复</button>
-        </div>
-      </div>
-
       <!-- 条件状态速览条：一眼看出哪个条件有问题 -->
       <div class="cond-summary">
         <span v-for="d in latest.condition_details" :key="'s' + d.condition_id"
@@ -168,26 +111,21 @@ async function runNow() {
         </div>
       </div>
 
-      <!-- 三段式解释（默认折叠） -->
-      <details style="margin-top:6px" class="sect-details">
-        <summary style="cursor:pointer; color:var(--muted); font-size:12px; padding:4px 0">
-          📋 【事实 / 推断 / 不确定性】三段式完整解释（点击展开）
-        </summary>
-        <div style="margin-top:6px">
-          <div class="sect sect-fact">
-            <h4>【客观事实 Fact】（可回溯至原始字段）</h4>
-            <ul><li v-for="(f, i) in latest.explanation.facts_list" :key="i">{{ f }}</li></ul>
-          </div>
-          <div class="sect sect-infer">
-            <h4>【规则逻辑推导 Inference】</h4>
-            <ul><li v-for="(f, i) in latest.explanation.inference_list" :key="i">{{ f }}</li></ul>
-          </div>
-          <div class="sect sect-unc">
-            <h4>【不确定性与降级说明 Uncertainty】</h4>
-            {{ latest.explanation.uncertainty_and_degradation_note }}
-          </div>
+      <!-- 三段式解释（默认展开） -->
+      <div style="margin-top:6px">
+        <div class="sect sect-fact">
+          <h4>【客观事实 Fact】（可回溯至原始字段）</h4>
+          <ul><li v-for="(f, i) in latest.explanation.facts_list" :key="i">{{ f }}</li></ul>
         </div>
-      </details>
+        <div class="sect sect-infer">
+          <h4>【规则逻辑推导 Inference】</h4>
+          <ul><li v-for="(f, i) in latest.explanation.inference_list" :key="i">{{ f }}</li></ul>
+        </div>
+        <div class="sect sect-unc">
+          <h4>【不确定性与降级说明 Uncertainty】</h4>
+          {{ latest.explanation.uncertainty_and_degradation_note }}
+        </div>
+      </div>
 
       <!-- 历史巡检时间轴 -->
       <details style="margin-top:6px">

@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api'
 import Inspector from '../components/Inspector.vue'
 import RuleEditor from '../components/RuleEditor.vue'
+import IncidentCard from '../components/IncidentCard.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -104,45 +105,54 @@ onMounted(load)
         <Inspector :selected-task="detail" @changed="load" @refresh-detail="load" />
       </div>
       <div class="detail-right">
+        <!-- 异常处理卡片（右侧独立窗口） -->
+        <IncidentCard :detail="detail" @changed="load" @refresh-detail="load" />
+
         <!-- 编辑模式 -->
         <RuleEditor v-if="editRuleId" :edit-rule-id="editRuleId" :selected-task="detail" :show-nl="false"
                     @changed="load" @refresh-detail="load" @edit-closed="closeEdit" />
-        <!-- 当前规则只读视图 -->
+        <!-- 当前规则（默认折叠，点开看详情） -->
         <div class="panel" v-else>
-          <div class="panel-title">当前规则 <span class="sub">v{{ task.current_version }} · {{ condCount(detail?.current_rule) }} 个原子条件</span>
-            <button class="mini" style="margin-left:auto" @click="startEdit">✏️ 编辑</button>
-          </div>
-          <div v-if="detail?.current_rule?.ai_interpretation_summary" class="banner banner-info" style="margin-bottom:10px; font-size:11px">
-            🤖 {{ detail.current_rule.ai_interpretation_summary }}
-          </div>
-          <div style="font-size:12px; color:var(--muted); margin-bottom:8px">
-            顶层逻辑：<b>{{ detail?.current_rule?.rule_tree?.logical_op === 'OR' ? '任一满足 (OR)' : '全部满足 (AND)' }}</b>
-            · 巡检 {{ detail?.current_rule?.schedule_config?.interval_seconds }}s
-            · 冷却 {{ detail?.current_rule?.schedule_config?.cooldown_minutes }} 分钟
-            · 去重窗口 {{ detail?.current_rule?.schedule_config?.dedup_window_minutes }} 分钟
-          </div>
-          <div v-for="c in detail?.current_rule?.rule_tree?.conditions || []" :key="c.condition_id" class="cond-row">
-            <span class="cond-mark">▫</span>
-            <div class="cond-body">
-              <div class="cond-label">{{ c.condition_id }} · {{ c.label }}</div>
-              <div class="cond-vals"><span>条件 <b>{{ c.operator }} {{ Array.isArray(c.threshold_value) ? c.threshold_value.join('/') : c.threshold_value }} {{ c.unit }}</b></span>
-                <span>主源 <b>{{ c.primary_source }}</b></span></div>
-              <div class="cond-reason">{{ c.statistical_caliber }}</div>
-            </div>
-          </div>
-          <div v-if="detail?.current_rule?.rule_tree?.sub_groups?.length" class="group-box" style="margin-top:4px">
-            <span class="group-label">以下全部满足 (AND)</span>
-            <div v-for="c in detail.current_rule.rule_tree.sub_groups[0].conditions" :key="c.condition_id" class="cond-row" style="margin-bottom:6px">
-              <span class="cond-mark">▫</span>
-              <div class="cond-body">
-                <div class="cond-label">{{ c.condition_id }} · {{ c.label }}</div>
-                <div class="cond-vals"><span>条件 <b>{{ c.operator }} {{ Array.isArray(c.threshold_value) ? c.threshold_value.join('/') : c.threshold_value }} {{ c.unit }}</b></span>
-                  <span>主源 <b>{{ c.primary_source }}</b></span></div>
-                <div class="cond-reason">{{ c.statistical_caliber }}</div>
+          <details>
+            <summary class="rule-fold-summary">
+              📜 当前规则 · v{{ task.current_version }} · {{ condCount(detail?.current_rule) }} 个原子条件 ·
+              顶层{{ detail?.current_rule?.rule_tree?.logical_op === 'OR' ? '任一满足(OR)' : '全部满足(AND)' }}
+              <span style="color:var(--dim); font-weight:400">（点击展开详情）</span>
+              <button class="mini" style="margin-left:auto" @click.stop="startEdit">✏️ 编辑</button>
+            </summary>
+            <div style="margin-top:10px">
+              <div v-if="detail?.current_rule?.ai_interpretation_summary" class="banner banner-info" style="margin-bottom:10px; font-size:11px">
+                🤖 {{ detail.current_rule.ai_interpretation_summary }}
               </div>
+              <div style="font-size:12px; color:var(--muted); margin-bottom:8px">
+                巡检 {{ detail?.current_rule?.schedule_config?.interval_seconds }}s
+                · 冷却 {{ detail?.current_rule?.schedule_config?.cooldown_minutes }} 分钟
+                · 去重窗口 {{ detail?.current_rule?.schedule_config?.dedup_window_minutes }} 分钟
+              </div>
+              <div v-for="c in detail?.current_rule?.rule_tree?.conditions || []" :key="c.condition_id" class="cond-row" style="cursor:default">
+                <span class="cond-mark">▫</span>
+                <div class="cond-body">
+                  <div class="cond-label">{{ c.condition_id }} · {{ c.label }}</div>
+                  <div class="cond-vals"><span>条件 <b>{{ c.operator }} {{ Array.isArray(c.threshold_value) ? c.threshold_value.join('/') : c.threshold_value }} {{ c.unit }}</b></span>
+                    <span>主源 <b>{{ c.primary_source }}</b></span></div>
+                  <div class="cond-reason">{{ c.statistical_caliber }}</div>
+                </div>
+              </div>
+              <div v-if="detail?.current_rule?.rule_tree?.sub_groups?.length" class="group-box" style="margin-top:4px">
+                <span class="group-label">以下全部满足 (AND)</span>
+                <div v-for="c in detail.current_rule.rule_tree.sub_groups[0].conditions" :key="c.condition_id" class="cond-row" style="margin-bottom:6px; cursor:default">
+                  <span class="cond-mark">▫</span>
+                  <div class="cond-body">
+                    <div class="cond-label">{{ c.condition_id }} · {{ c.label }}</div>
+                    <div class="cond-vals"><span>条件 <b>{{ c.operator }} {{ Array.isArray(c.threshold_value) ? c.threshold_value.join('/') : c.threshold_value }} {{ c.unit }}</b></span>
+                      <span>主源 <b>{{ c.primary_source }}</b></span></div>
+                    <div class="cond-reason">{{ c.statistical_caliber }}</div>
+                  </div>
+                </div>
+              </div>
+              <div class="cond-reason" style="margin-top:6px">原始自然语言：「{{ detail?.current_rule?.original_nl_query }}」</div>
             </div>
-          </div>
-          <div class="cond-reason" style="margin-top:6px">原始自然语言：「{{ detail?.current_rule?.original_nl_query }}」</div>
+          </details>
         </div>
       </div>
     </div>
