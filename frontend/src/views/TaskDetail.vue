@@ -42,6 +42,12 @@ async function act(action) {
   load()
 }
 
+async function removeTask() {
+  if (!confirm(`确认删除任务「${task.value.title}」？版本历史与巡检日志将一并删除。`)) return
+  await api.deleteTask(task.value.id)
+  router.push('/')
+}
+
 function startEdit() {
   editRuleId.value = route.params.id
 }
@@ -88,6 +94,7 @@ onMounted(load)
         <button class="mini" @click="act('PAUSE')" v-if="task.status !== 'PAUSED'">暂停</button>
         <button class="mini" @click="act('RESUME')" v-else>恢复</button>
         <button class="mini" v-if="task.status === 'COOLDOWN'" @click="act('CLEAR_COOLDOWN')">解除冷却</button>
+        <button class="mini danger" @click="removeTask">🗑 删除</button>
       </div>
     </div>
 

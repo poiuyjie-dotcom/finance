@@ -137,13 +137,17 @@ textarea { resize: vertical; }
 .group-label { position: absolute; top: -9px; left: 10px; background: var(--panel); padding: 0 7px; font-size: 11px; color: var(--blue); font-weight: 600; }
 
 /* 归因面板 */
-.cond-row { display: flex; gap: 9px; padding: 9px 10px; border: 1px solid var(--border); border-radius: 9px; margin-bottom: 8px; background: var(--panel2); }
+.cond-summary { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+.prob-hint { font-size: 11px; color: var(--amber); }
+.cond-row { display: flex; gap: 9px; padding: 8px 10px; border: 1px solid var(--border); border-left: 3px solid transparent; border-radius: 9px; margin-bottom: 8px; background: var(--panel2); cursor: pointer; }
+.cond-row.problem { border-left-color: var(--amber); background: var(--amber-bg); }
+.cond-row.expanded .cond-reason { white-space: normal; }
 .cond-mark { font-size: 15px; line-height: 1.2; }
 .cond-body { flex: 1; min-width: 0; }
 .cond-label { font-weight: 600; font-size: 12px; }
 .cond-vals { display: flex; gap: 10px; flex-wrap: wrap; font-size: 11.5px; color: var(--muted); margin: 3px 0; }
 .cond-vals b { color: var(--text); font-weight: 600; }
-.cond-reason { font-size: 11px; color: var(--dim); }
+.cond-reason { font-size: 11px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cite-tag { display: inline-flex; gap: 4px; align-items: center; font-size: 10.5px; color: var(--blue); background: var(--blue-bg); border-radius: 5px; padding: 1px 7px; cursor: pointer; margin-top: 4px; }
 .cite-tag:hover { text-decoration: underline; }
 

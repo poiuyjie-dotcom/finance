@@ -40,6 +40,12 @@ async function clearCooldown(t) {
   await api.setStatus(t.id, 'CLEAR_COOLDOWN')
   emit('changed')
 }
+
+async function removeTask(t) {
+  if (!confirm(`确认删除任务「${t.title}」？其版本历史与巡检日志将一并删除。`)) return
+  await api.deleteTask(t.id)
+  emit('changed')
+}
 </script>
 
 <template>
@@ -85,7 +91,8 @@ async function clearCooldown(t) {
         <button class="mini" @click="runNow(t)">立即巡检</button>
         <button class="mini" v-if="t.status === 'COOLDOWN'" @click="clearCooldown(t)">解除冷却</button>
         <button class="mini" @click="togglePause(t)">{{ t.status === 'PAUSED' ? '恢复' : '暂停' }}</button>
-        <span class="goto-hint">详情 ›</span>
+        <button class="mini danger" @click="removeTask(t)">删除</button>
+        <button class="mini primary goto-btn" @click="emit('navigate', t.id)">详情 ›</button>
       </div>
     </div>
   </div>

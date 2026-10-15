@@ -6,6 +6,7 @@ const props = defineProps({ selectedTask: Object })
 const emit = defineEmits(['changed', 'refreshDetail'])
 
 const citation = ref(null)   // 溯源弹层
+const expandedId = ref(null) // 展开长解释的条件
 
 const OUTCOME_CN = {
   TRIGGERED_ALERT: { cls: 'badge-red', txt: '已触发提醒' },
@@ -23,6 +24,18 @@ const latest = computed(() => props.selectedTask?.recent_logs?.[0] || null)
 const logs = computed(() => props.selectedTask?.recent_logs || [])
 
 const mark = (met) => met === true ? '✅' : met === false ? '❌' : '⚠️'
+
+// 「有问题」= 无法判定 / 数据过期 / 双源冲突 / 降级数据源 —— 与业务上的未满足(❌)区分开
+function isProblem(d) {
+  const c = d.citation
+  return d.is_met === null || c.is_stale || c.conflict_with
+    || (c.source_name || '').includes('缓存回退') || (c.source_name || '').includes('离线')
+}
+const problemCount = computed(() => (latest.value?.condition_details || []).filter(isProblem).length)
+
+function toggleExpand(id) {
+  expandedId.value = expandedId.value === id ? null : id
+}
 
 async function runNow() {
   if (!props.selectedTask) return
@@ -67,20 +80,34 @@ async function runNow() {
         </div>
       </div>
 
-      <!-- 逐条件对比 -->
-      <div v-for="d in latest.condition_details" :key="'r' + d.condition_id" class="cond-row">
+      <!-- 条件状态速览条：一眼看出哪个条件有问题 -->
+      <div class="cond-summary">
+        <span v-for="d in latest.condition_details" :key="'s' + d.condition_id"
+              class="badge" :class="isProblem(d) ? 'badge-amber' : d.is_met === true ? 'badge-green' : 'badge-gray'"
+              :title="d.label">
+          {{ d.condition_id }} {{ d.is_met === true ? '✓' : d.is_met === false ? '✗' : '⚠' }}
+        </span>
+        <span v-if="problemCount" class="prob-hint">{{ problemCount }} 个条件存在数据问题（琥珀色）</span>
+      </div>
+
+      <!-- 逐条件对比：问题条件高亮 + 长解释折叠，点击行展开 -->
+      <div v-for="d in latest.condition_details" :key="'r' + d.condition_id"
+           class="cond-row" :class="{ problem: isProblem(d), expanded: expandedId === d.condition_id }"
+           @click="toggleExpand(d.condition_id)">
         <span class="cond-mark">{{ mark(d.is_met) }}</span>
         <div class="cond-body">
-          <div class="cond-label">{{ d.condition_id }} · {{ d.label }}</div>
+          <div class="cond-label">{{ d.condition_id }} · {{ d.label }}
+            <span v-if="isProblem(d)" class="badge badge-amber" style="margin-left:4px">数据问题</span>
+          </div>
           <div class="cond-vals">
             <span>实测 <b>{{ d.actual_value_display }}</b></span>
             <span>规则 <b>{{ d.threshold_display }}</b></span>
             <span v-if="d.gap_pct != null && d.is_met === false">距触发 <b>{{ d.gap_pct > 0 ? '+' : '' }}{{ d.gap_pct }}%</b></span>
+            <span class="cite-tag" @click.stop="citation = d.citation" style="margin-top:0">
+              溯源 · {{ d.citation.source_name.slice(0, 14) }}
+            </span>
           </div>
-          <div class="cond-reason">{{ d.reason_snippet }}</div>
-          <span class="cite-tag" @click="citation = d.citation">
-            溯源 · {{ d.citation.source_name.slice(0, 16) }} · {{ (d.citation.data_timestamp || '').slice(11, 19) }}
-          </span>
+          <div class="cond-reason" :title="d.reason_snippet">{{ d.reason_snippet }}</div>
         </div>
       </div>
 

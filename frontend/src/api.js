@@ -22,6 +22,7 @@ export const api = {
   rollback: (id, v) => req('POST', `/tasks/${id}/rollback/${v}`),
   evaluateNow: (id) => req('POST', `/tasks/${id}/evaluate-now`),
   setStatus: (id, action) => req('POST', `/tasks/${id}/status`, { action }),
+  deleteTask: (id) => req('DELETE', `/tasks/${id}`),
   health: () => req('GET', '/datasources/health'),
   faultInject: (mode) => req('POST', '/simulator/fault-inject', { mode }),
   complianceTest: (text) => req('POST', `/simulator/compliance-test?text=${encodeURIComponent(text)}`),

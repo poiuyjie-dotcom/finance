@@ -179,3 +179,17 @@ def set_status(task_id: str, req: TaskStatusAction, db: Session = Depends(get_db
         task.cooldown_until = None
     db.commit()
     return {"id": task.id, "status": task.status, "cooldown_until": task.cooldown_until}
+
+
+@router.delete("/tasks/{task_id}", status_code=204)
+def delete_task(task_id: str, db: Session = Depends(get_db)):
+    """删除任务及其全部版本与巡检日志。"""
+    from sqlalchemy import delete as sa_delete
+
+    task = db.get(MonitorTask, task_id)
+    if not task:
+        raise HTTPException(404, "任务不存在")
+    db.execute(sa_delete(TaskRuleVersion).where(TaskRuleVersion.task_id == task_id))
+    db.execute(sa_delete(TaskExecutionLog).where(TaskExecutionLog.task_id == task_id))
+    db.delete(task)
+    db.commit()
