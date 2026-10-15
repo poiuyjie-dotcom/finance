@@ -66,7 +66,8 @@ body {
 #app { min-height: 100vh; display: flex; flex-direction: column; }
 
 .layout { display: grid; grid-template-columns: 300px 1fr 380px; gap: 12px; padding: 12px 16px 24px; flex: 1; align-items: start; }
-@media (max-width: 1200px) { .layout { grid-template-columns: 1fr; } .col-left { order: 2 } .col-mid { order: 1 } .col-right { order: 3 } }
+.layout.left-collapsed { grid-template-columns: 46px 1fr 380px; }
+@media (max-width: 1200px) { .layout, .layout.left-collapsed { grid-template-columns: 1fr; } .col-left { order: 2 } .col-mid { order: 1 } .col-right { order: 3 } .side-strip { display: none; } }
 
 .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
 .panel + .panel { margin-top: 12px; }
@@ -184,6 +185,18 @@ textarea { resize: vertical; }
 .example-chip.bad { color: var(--red); border-color: rgba(248,113,113,.4); }
 
 .footer-note { text-align: center; color: var(--dim); font-size: 11px; padding: 10px 0 18px; }
+
+/* 左栏折叠窄条 */
+.side-strip { cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 10px 4px; min-height: 320px; user-select: none; }
+.side-strip:hover { border-color: var(--blue); }
+.strip-btn { font-size: 15px; color: var(--blue); font-weight: 700; }
+.strip-label { writing-mode: vertical-rl; letter-spacing: 4px; font-size: 11px; color: var(--muted); }
+.strip-stats { display: flex; flex-direction: column; gap: 6px; font-size: 12px; font-weight: 700; }
+
+/* 编辑器空态指引 */
+.empty-guide { display: flex; flex-direction: column; gap: 8px; }
+.empty-step { padding: 10px 12px; border: 1px dashed var(--border2); border-radius: 9px; background: var(--panel2); color: var(--muted); font-size: 12px; line-height: 1.6; }
+.empty-step b { color: var(--text); }
 .mono { font-family: Consolas, monospace; }
 .spin { display: inline-block; width: 12px; height: 12px; border: 2px solid var(--border2); border-top-color: var(--blue); border-radius: 50%; animation: rot 0.7s linear infinite; vertical-align: -2px; }
 @keyframes rot { to { transform: rotate(360deg); } }

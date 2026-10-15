@@ -8,6 +8,8 @@ import Inspector from './components/Inspector.vue'
 const health = ref(null)
 const tasks = ref([])
 const selectedTask = ref(null)     // { task, current_rule, recent_logs }
+const editRuleId = ref(null)       // 显式进入「编辑规则」模式的任务 id；null = 空态
+const leftCollapsed = ref(false)
 const refreshKey = ref(0)
 let timer = null
 
@@ -31,6 +33,11 @@ async function selectTask(id) {
 function onTasksChanged() {
   refreshTasks()
   refreshKey.value++
+}
+
+function onEditRule(id) {
+  editRuleId.value = id
+  selectTask(id)
 }
 
 onMounted(() => {
@@ -66,13 +73,17 @@ onUnmounted(() => clearInterval(timer))
     </div>
   </header>
 
-  <main class="layout">
+  <main class="layout" :class="{ 'left-collapsed': leftCollapsed }">
     <div class="col-left">
       <TaskList :tasks="tasks" :refresh-key="refreshKey" :selected-id="selectedTask?.task?.id"
-                @select="selectTask" @changed="onTasksChanged" />
+                :collapsed="leftCollapsed"
+                @select="selectTask" @changed="onTasksChanged" @edit-rule="onEditRule"
+                @toggle-collapse="leftCollapsed = !leftCollapsed" />
     </div>
     <div class="col-mid">
-      <RuleEditor :selected-task="selectedTask" @changed="onTasksChanged" @created="selectTask" @refresh-detail="selectTask" />
+      <RuleEditor :selected-task="selectedTask" :edit-rule-id="editRuleId"
+                  @changed="onTasksChanged" @created="selectTask" @refresh-detail="selectTask"
+                  @edit-closed="editRuleId = null" />
     </div>
     <div class="col-right">
       <Inspector :selected-task="selectedTask" :refresh-key="refreshKey" @changed="onTasksChanged" @refresh-detail="selectTask" />

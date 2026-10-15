@@ -2,8 +2,8 @@
 import { computed } from 'vue'
 import { api } from '../api'
 
-const props = defineProps({ tasks: Array, selectedId: String, refreshKey: Number })
-const emit = defineEmits(['select', 'changed'])
+const props = defineProps({ tasks: Array, selectedId: String, refreshKey: Number, collapsed: Boolean })
+const emit = defineEmits(['select', 'changed', 'editRule', 'toggleCollapse'])
 
 const STATUS = {
   ACTIVE: { cls: 'badge-green', txt: '监控中' },
@@ -45,8 +45,24 @@ async function clearCooldown(t) {
 </script>
 
 <template>
-  <div class="panel">
-    <div class="panel-title">监控任务雷达 <span class="sub">点击选中查看归因</span></div>
+  <!-- 折叠态：窄条 -->
+  <div class="panel side-strip" v-if="collapsed" @click="emit('toggleCollapse')" title="展开任务雷达">
+    <div class="strip-btn">»</div>
+    <div class="strip-label">任务雷达</div>
+    <div class="strip-stats">
+      <span title="运行任务">{{ stats.total }}</span>
+      <span style="color:var(--red)" title="已触发">{{ stats.triggered }}</span>
+      <span style="color:var(--blue)" title="冷却中">{{ stats.cooldown }}</span>
+      <span style="color:var(--amber)" title="降级">{{ stats.degraded }}</span>
+    </div>
+  </div>
+
+  <!-- 展开态 -->
+  <div class="panel" v-else>
+    <div class="panel-title">
+      监控任务雷达 <span class="sub">点击查看归因</span>
+      <button class="mini" style="margin-left:auto" @click="emit('toggleCollapse')" title="折叠侧栏">«</button>
+    </div>
     <div class="stat-row">
       <div class="stat"><b style="color:var(--text)">{{ stats.total }}</b><span>运行任务</span></div>
       <div class="stat"><b style="color:var(--red)">{{ stats.triggered }}</b><span>已触发</span></div>
@@ -70,6 +86,7 @@ async function clearCooldown(t) {
       <div class="task-outcome" v-if="t.latest_headline">{{ t.latest_headline }}</div>
       <div class="task-actions" @click.stop>
         <button class="mini" @click="runNow(t.id)">立即巡检</button>
+        <button class="mini" @click="emit('editRule', t.id)">编辑规则</button>
         <button class="mini" v-if="t.status === 'COOLDOWN'" @click="clearCooldown(t)">解除冷却</button>
         <button class="mini" @click="togglePause(t)">{{ t.status === 'PAUSED' ? '恢复' : '暂停' }}</button>
       </div>
