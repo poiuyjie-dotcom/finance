@@ -104,9 +104,13 @@ def get_task(task_id: str, db: Session = Depends(get_db)):
 
 
 def l_to_dict(l: TaskExecutionLog) -> dict:
+    # DB 内部存 UTC，序列化时转北京时间展示
+    from datetime import timedelta as _td
+
+    executed_bj = (l.executed_at + _td(hours=8)) if l.executed_at else None
     return {
         "log_id": l.id, "task_id": l.task_id, "rule_version": l.rule_version,
-        "executed_at": l.executed_at.isoformat() if l.executed_at else None,
+        "executed_at": executed_bj.isoformat() if executed_bj else None,
         "outcome_type": l.outcome_type, "task_state_before": l.task_state_before,
         "task_state_after": l.task_state_after, "overall_boolean_result": l.overall_boolean_result,
         "dedup_fingerprint": l.dedup_fingerprint, "cooldown_remaining_seconds": l.cooldown_remaining_seconds,
