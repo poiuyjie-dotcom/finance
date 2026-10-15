@@ -25,4 +25,7 @@ export const api = {
   health: () => req('GET', '/datasources/health'),
   faultInject: (mode) => req('POST', '/simulator/fault-inject', { mode }),
   complianceTest: (text) => req('POST', `/simulator/compliance-test?text=${encodeURIComponent(text)}`),
+  getSettings: () => req('GET', '/settings'),
+  updateKeys: (payload) => req('POST', '/settings/keys', payload),
+  testConnections: () => req('POST', '/settings/test'),
 }

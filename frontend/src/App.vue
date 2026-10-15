@@ -4,12 +4,14 @@ import { api } from './api'
 import TaskList from './components/TaskList.vue'
 import RuleEditor from './components/RuleEditor.vue'
 import Inspector from './components/Inspector.vue'
+import SettingsModal from './components/SettingsModal.vue'
 
 const health = ref(null)
 const tasks = ref([])
 const selectedTask = ref(null)     // { task, current_rule, recent_logs }
 const editRuleId = ref(null)       // 显式进入「编辑规则」模式的任务 id；null = 空态
 const leftCollapsed = ref(false)
+const showSettings = ref(false)
 const refreshKey = ref(0)
 let timer = null
 
@@ -70,6 +72,7 @@ onUnmounted(() => clearInterval(timer))
         <span class="dot" :class="health.trading_calendar.is_trading_day ? 'dot-green' : 'dot-gray'"></span>
         {{ health.trading_calendar.is_trading_day ? '交易日' : '非交易日' }} · {{ PHASE_CN[health.trading_calendar.market_phase] || health.trading_calendar.market_phase }}
       </span>
+      <button class="mini" style="margin-left:6px" @click="showSettings = true" title="数据源密钥 / 调度配置 / 连通性测试">⚙️ 设置</button>
     </div>
   </header>
 
@@ -93,4 +96,6 @@ onUnmounted(() => clearInterval(timer))
   <footer class="footer-note">
     AI 仅承担「自然语言→规则编译」与「结构化归因解释」；所有数值比较由确定性引擎执行，关键数字可溯源至原始字段与时点。
   </footer>
+
+  <SettingsModal :open="showSettings" @close="showSettings = false" />
 </template>

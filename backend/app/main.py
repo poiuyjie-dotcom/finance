@@ -12,7 +12,7 @@ from fastapi.staticfiles import StaticFiles
 
 from . import config
 from .database import Base, SessionLocal, engine
-from .routers import datasources, simulator, tasks
+from .routers import datasources, settings, simulator, tasks
 from .seed import seed_if_empty
 from .services import data_adapter as da
 from .services import scheduler_engine
@@ -46,6 +46,7 @@ app.add_middleware(
 app.include_router(tasks.router, prefix="/api/v1", tags=["tasks"])
 app.include_router(datasources.router, prefix="/api/v1/datasources", tags=["datasources"])
 app.include_router(simulator.router, prefix="/api/v1/simulator", tags=["simulator"])
+app.include_router(settings.router, prefix="/api/v1", tags=["settings"])
 
 
 # ---- 生产环境：托管前端静态产物（单进程，无跨域）----
