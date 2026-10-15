@@ -17,9 +17,16 @@ _TIMEOUT = httpx.Timeout(12.0, connect=6.0)
 _CACHE_TTL = 600  # 相同 state+问题 10 分钟内复用，节省配额
 _cache: dict[str, tuple[float, dict]] = {}
 _status: dict = {"status": "UNKNOWN", "last_sync": "", "last_error": ""}
+_status_config = None
 
 
 def get_status() -> dict:
+    global _status_config
+    signature = (config.JEV_API_KEY, config.JEV_MODEL)
+    if signature != _status_config:
+        _status.update(status="UNKNOWN", last_sync="", last_error="")
+        _cache.clear()
+        _status_config = signature
     return dict(_status)
 
 
@@ -34,6 +41,7 @@ def _cache_key(state, questions: dict) -> str:
 
 async def jev_evaluate(state, questions: dict) -> dict | None:
     """调用 Jev。返回 {answers: {...}, model} 或 None（未配置/失败/超时——调用方静默回退）。"""
+    get_status()
     if not config.JEV_API_KEY:
         return None
     key = _cache_key(state, questions)

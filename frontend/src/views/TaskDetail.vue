@@ -1,164 +1,365 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { api } from '../api'
-import Inspector from '../components/Inspector.vue'
-import RuleEditor from '../components/RuleEditor.vue'
-import IncidentCard from '../components/IncidentCard.vue'
-
-const route = useRoute()
-const router = useRouter()
-const detail = ref(null)          // { task, current_rule, recent_logs, version_count }
-const editRuleId = ref(null)      // 进入编辑模式
-const loading = ref(true)
-
-const STATUS = {
-  ACTIVE: { cls: 'badge-green', txt: '监控中' },
-  TRIGGERED: { cls: 'badge-red', txt: '已触发' },
-  COOLDOWN: { cls: 'badge-blue', txt: '冷却中' },
-  DEGRADED: { cls: 'badge-amber', txt: '降级运行' },
-  PAUSED: { cls: 'badge-gray', txt: '已暂停' },
-  ERROR_HALT: { cls: 'badge-red', txt: '熔断' },
-}
-
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import {
+  ArrowLeft,
+  Play,
+  Pause,
+  Pencil,
+  Trash2,
+  RefreshCw,
+  Clock,
+  GitBranch,
+  ShieldCheck,
+  RotateCcw,
+} from "lucide-vue-next";
+import { api } from "../api";
+import { statusInfo, formatTime, outcomes } from "../presentation";
+import Inspector from "../components/Inspector.vue";
+import RuleEditor from "../components/RuleEditor.vue";
+import IncidentCard from "../components/IncidentCard.vue";
+const route = useRoute();
+const router = useRouter();
+const detail = ref(null);
+const tab = ref("result");
+const editing = ref(false);
+const versions = ref([]);
+const error = ref("");
+const busy = ref(false);
+let timer;
+const task = computed(() => detail.value?.task);
+const schedule = computed(
+  () => detail.value?.current_rule?.schedule_config || {},
+);
+const latest = computed(() => detail.value?.recent_logs?.[0]);
+const conditions = computed(() => {
+  const flatten = (g) => [
+    ...(g?.conditions || []),
+    ...(g?.sub_groups || []).flatMap(flatten),
+  ];
+  return flatten(detail.value?.current_rule?.rule_tree);
+});
 async function load() {
-  loading.value = true
   try {
-    detail.value = await api.getTask(route.params.id)
+    detail.value = await api.getTask(route.params.id);
+    error.value = "";
   } catch (e) {
-    router.replace('/')
-    return
-  } finally { loading.value = false }
+    error.value = e.message;
+  }
 }
-
-const task = computed(() => detail.value?.task)
-
-function fmtCd(sec) {
-  if (sec <= 0) return ''
-  return `${Math.floor(sec / 60)} 分 ${sec % 60} 秒`
+async function execute(fn) {
+  busy.value = true;
+  error.value = "";
+  try {
+    await fn();
+    await load();
+  } catch (e) {
+    error.value = e.message;
+  } finally {
+    busy.value = false;
+  }
 }
-
-async function act(action) {
-  await api.setStatus(task.value.id, action)
-  load()
-}
-
 async function removeTask() {
-  if (!confirm(`确认删除任务「${task.value.title}」？版本历史与巡检日志将一并删除。`)) return
-  await api.deleteTask(task.value.id)
-  router.push('/')
+  if (confirm(`删除「${task.value.title}」及其全部巡检和版本记录？`))
+    await execute(async () => {
+      await api.deleteTask(task.value.id);
+      await router.push("/");
+    });
 }
-
-function startEdit() {
-  editRuleId.value = route.params.id
+async function showVersions() {
+  try {
+    versions.value = await api.versions(route.params.id);
+  } catch (e) {
+    error.value = e.message;
+  }
 }
-function closeEdit() {
-  editRuleId.value = null
+async function rollback(v) {
+  if (confirm(`将 v${v} 的规则恢复为一个新版本？冷却与去重状态将重置。`))
+    await execute(async () => {
+      await api.rollback(task.value.id, v);
+      await showVersions();
+    });
 }
-
-function condCount(rule) {
-  if (!rule?.rule_tree) return 0
-  return (rule.rule_tree.conditions?.length || 0)
-    + (rule.rule_tree.sub_groups || []).reduce((n, g) => n + g.conditions.length, 0)
-}
-
-onMounted(load)
+watch(tab, (v) => {
+  if (v === "versions") showVersions();
+});
+watch(() => route.params.id, load);
+onMounted(() => {
+  load();
+  timer = setInterval(() => {
+    if (!busy.value && !editing.value) load();
+  }, 15000);
+});
+onUnmounted(() => clearInterval(timer));
 </script>
-
 <template>
-  <main class="detail-wrap">
-    <!-- 面包屑 + 任务头部 -->
-    <div class="crumbs">
-      <router-link to="/">‹ 工作台</router-link>
-      <span style="color:var(--dim)">/</span>
-      <span>{{ task?.title || '加载中…' }}</span>
+  <main class="page detail-page">
+    <router-link to="/" class="back-link"
+      ><ArrowLeft :size="15" />监控总览</router-link
+    >
+    <div v-if="error" class="banner banner-bad" role="alert">
+      {{ error }}<button @click="load">重新加载</button>
     </div>
-
-    <div class="panel detail-head" v-if="task">
-      <div class="dh-main">
-        <div class="dh-title">
-          <span class="task-name" style="font-size:16px">{{ task.title }}</span>
-          <span class="badge" :class="STATUS[task.status]?.cls">{{ STATUS[task.status]?.txt || task.status }}</span>
-          <span class="badge badge-violet">v{{ task.current_version }}</span>
+    <template v-if="task">
+      <div class="page-heading detail-heading">
+        <div>
+          <div class="eyebrow">MONITOR / v{{ task.current_version }}</div>
+          <h1>{{ task.title }}</h1>
+          <div class="detail-status">
+            <span class="badge" :class="statusInfo(task.status).cls">{{
+              statusInfo(task.status).txt
+            }}</span
+            ><span
+              >{{ conditions.length }} 个条件 ·
+              {{
+                detail.current_rule.rule_tree.logical_op === "OR"
+                  ? "任一满足"
+                  : "全部满足"
+              }}</span
+            >
+          </div>
         </div>
-        <div class="task-meta" style="font-size:12px">
-          每 {{ task.interval_seconds }}s 巡检 · 版本数 {{ detail?.version_count }}
-          <template v-if="task.status === 'COOLDOWN' && task.cooldown_remaining_seconds > 0">
-            · 冷却剩余 <span class="mono">{{ fmtCd(task.cooldown_remaining_seconds) }}</span>
-          </template>
-          <template v-if="task.degraded_reason"> · <span style="color:var(--amber)">降级原因：{{ task.degraded_reason.slice(0, 60) }}</span></template>
+        <div class="head-actions">
+          <button
+            class="icon-button"
+            title="编辑规则"
+            aria-label="编辑规则"
+            @click="
+              tab = 'rule';
+              editing = true;
+            "
+          >
+            <Pencil :size="17" /></button
+          ><button
+            :disabled="busy"
+            @click="
+              execute(() =>
+                api.setStatus(
+                  task.id,
+                  task.status === 'PAUSED' ? 'RESUME' : 'PAUSE',
+                ),
+              )
+            "
+          >
+            <component
+              :is="task.status === 'PAUSED' ? Play : Pause"
+              :size="16"
+            />{{ task.status === "PAUSED" ? "恢复" : "暂停" }}</button
+          ><button
+            class="primary"
+            :disabled="busy"
+            @click="execute(() => api.evaluateNow(task.id))"
+          >
+            <RefreshCw :size="16" :class="{ rotating: busy }" />{{
+              busy ? "处理中…" : "立即巡检"
+            }}</button
+          ><button
+            class="icon-button danger"
+            title="删除任务"
+            aria-label="删除任务"
+            :disabled="busy"
+            @click="removeTask"
+          >
+            <Trash2 :size="17" />
+          </button>
         </div>
-        <div class="task-outcome" v-if="task.latest_headline" style="font-size:12px">{{ task.latest_headline }}</div>
       </div>
-      <div class="dh-actions">
-        <button class="primary mini" @click="startEdit" v-if="!editRuleId">✏️ 编辑规则</button>
-        <button class="mini" @click="act('PAUSE')" v-if="task.status !== 'PAUSED'">暂停</button>
-        <button class="mini" @click="act('RESUME')" v-else>恢复</button>
-        <button class="mini" v-if="task.status === 'COOLDOWN'" @click="act('CLEAR_COOLDOWN')">解除冷却</button>
-        <button class="mini danger" @click="removeTask">🗑 删除</button>
+      <div class="detail-metrics">
+        <div>
+          <Clock :size="17" /><span
+            >巡检频率<strong>每 {{ task.interval_seconds }} 秒</strong></span
+          >
+        </div>
+        <div>
+          <ShieldCheck :size="17" /><span
+            >冷却 / 去重<strong
+              >{{ schedule.cooldown_minutes }} /
+              {{ schedule.dedup_window_minutes }} 分钟</strong
+            ></span
+          >
+        </div>
+        <div>
+          <GitBranch :size="17" /><span
+            >规则版本<strong
+              >v{{ task.current_version }} ·
+              {{ detail.version_count }} 个版本</strong
+            ></span
+          >
+        </div>
+        <div>
+          <RefreshCw :size="17" /><span
+            >最近巡检<strong>{{
+              formatTime(task.last_executed_at, true)
+            }}</strong></span
+          >
+        </div>
       </div>
-    </div>
-
-    <!-- 主体：左归因 / 右当前规则 -->
-    <div class="detail-grid" v-if="task">
-      <div class="detail-left">
-        <Inspector :selected-task="detail" @changed="load" @refresh-detail="load" />
+      <div v-if="task.cooldown_remaining_seconds > 0" class="cooldown-notice">
+        <Clock :size="16" />冷却静默还剩
+        {{ Math.ceil(task.cooldown_remaining_seconds / 60) }} 分钟<button
+          class="text-button"
+          :disabled="busy"
+          @click="execute(() => api.setStatus(task.id, 'CLEAR_COOLDOWN'))"
+        >
+          解除冷却
+        </button>
       </div>
-      <div class="detail-right">
-        <!-- 异常处理卡片（右侧独立窗口） -->
-        <IncidentCard :detail="detail" @changed="load" @refresh-detail="load" />
-
-        <!-- 编辑模式 -->
-        <RuleEditor v-if="editRuleId" :edit-rule-id="editRuleId" :selected-task="detail" :show-nl="false"
-                    @changed="load" @refresh-detail="load" @edit-closed="closeEdit" />
-        <!-- 当前规则（默认折叠，点开看详情） -->
-        <div class="panel" v-else>
-          <details>
-            <summary class="rule-fold-summary">
-              📜 当前规则 · v{{ task.current_version }} · {{ condCount(detail?.current_rule) }} 个原子条件 ·
-              顶层{{ detail?.current_rule?.rule_tree?.logical_op === 'OR' ? '任一满足(OR)' : '全部满足(AND)' }}
-              <span style="color:var(--dim); font-weight:400">（点击展开详情）</span>
-              <button class="mini" style="margin-left:auto" @click.stop="startEdit">✏️ 编辑</button>
-            </summary>
-            <div style="margin-top:10px">
-              <div v-if="detail?.current_rule?.ai_interpretation_summary" class="banner banner-info" style="margin-bottom:10px; font-size:11px">
-                🤖 {{ detail.current_rule.ai_interpretation_summary }}
-              </div>
-              <div style="font-size:12px; color:var(--muted); margin-bottom:8px">
-                巡检 {{ detail?.current_rule?.schedule_config?.interval_seconds }}s
-                · 冷却 {{ detail?.current_rule?.schedule_config?.cooldown_minutes }} 分钟
-                · 去重窗口 {{ detail?.current_rule?.schedule_config?.dedup_window_minutes }} 分钟
-              </div>
-              <div v-for="c in detail?.current_rule?.rule_tree?.conditions || []" :key="c.condition_id" class="cond-row" style="cursor:default">
-                <span class="cond-mark">▫</span>
-                <div class="cond-body">
-                  <div class="cond-label">{{ c.condition_id }} · {{ c.label }}</div>
-                  <div class="cond-vals"><span>条件 <b>{{ c.operator }} {{ Array.isArray(c.threshold_value) ? c.threshold_value.join('/') : c.threshold_value }} {{ c.unit }}</b></span>
-                    <span>主源 <b>{{ c.primary_source }}</b></span></div>
-                  <div class="cond-reason">{{ c.statistical_caliber }}</div>
-                </div>
-              </div>
-              <div v-if="detail?.current_rule?.rule_tree?.sub_groups?.length" class="group-box" style="margin-top:4px">
-                <span class="group-label">以下全部满足 (AND)</span>
-                <div v-for="c in detail.current_rule.rule_tree.sub_groups[0].conditions" :key="c.condition_id" class="cond-row" style="margin-bottom:6px; cursor:default">
-                  <span class="cond-mark">▫</span>
-                  <div class="cond-body">
-                    <div class="cond-label">{{ c.condition_id }} · {{ c.label }}</div>
-                    <div class="cond-vals"><span>条件 <b>{{ c.operator }} {{ Array.isArray(c.threshold_value) ? c.threshold_value.join('/') : c.threshold_value }} {{ c.unit }}</b></span>
-                      <span>主源 <b>{{ c.primary_source }}</b></span></div>
-                    <div class="cond-reason">{{ c.statistical_caliber }}</div>
-                  </div>
-                </div>
-              </div>
-              <div class="cond-reason" style="margin-top:6px">原始自然语言：「{{ detail?.current_rule?.original_nl_query }}」</div>
+      <IncidentCard :detail="detail" @changed="load" />
+      <div class="tabs detail-tabs" role="tablist" aria-label="任务详情">
+        <button
+          v-for="item in [
+            { id: 'result', name: '当前判定' },
+            { id: 'rule', name: '监控规则' },
+            { id: 'history', name: '巡检记录' },
+            { id: 'versions', name: '版本变化' },
+          ]"
+          :key="item.id"
+          role="tab"
+          :aria-selected="tab === item.id"
+          :class="{ active: tab === item.id }"
+          @click="tab = item.id"
+        >
+          {{ item.name
+          }}<span v-if="item.id === 'history'">{{
+            detail.recent_logs.length
+          }}</span>
+        </button>
+      </div>
+      <Inspector v-if="tab === 'result'" :selected-task="detail" />
+      <section v-if="tab === 'rule'" class="rule-section">
+        <RuleEditor
+          v-if="editing"
+          :edit-rule-id="task.id"
+          :selected-task="detail"
+          :show-nl="false"
+          @changed="load"
+          @edit-closed="editing = false"
+        /><template v-else
+          ><div class="section-heading">
+            <h2>当前规则</h2>
+            <button @click="editing = true">
+              <Pencil :size="15" />编辑规则
+            </button>
+          </div>
+          <blockquote class="original-query">
+            {{ detail.current_rule.original_nl_query }}
+          </blockquote>
+          <div class="rule-logic-label">
+            {{
+              detail.current_rule.rule_tree.logical_op === "OR"
+                ? "任一分支满足时触发"
+                : "全部条件满足时触发"
+            }}
+          </div>
+          <div
+            v-for="c in conditions"
+            :key="c.condition_id"
+            class="rule-read-row"
+          >
+            <span class="condition-id">{{ c.condition_id }}</span>
+            <div>
+              <strong>{{ c.label }}</strong>
+              <p>
+                {{ c.target_name }} · {{ c.target_code }} ·
+                {{ c.statistical_caliber }}
+              </p>
             </div>
-          </details>
+            <b
+              >{{ c.operator }}
+              {{
+                Array.isArray(c.threshold_value)
+                  ? c.threshold_value.join(" / ")
+                  : c.threshold_value
+              }}
+              {{ c.unit }}</b
+            >
+          </div>
+          <details class="raw-details">
+            <summary>完整规则结构</summary>
+            <pre class="raw-box">{{
+              JSON.stringify(detail.current_rule.rule_tree, null, 2)
+            }}</pre>
+          </details></template
+        >
+      </section>
+      <section v-if="tab === 'history'" class="history-section">
+        <div class="section-heading">
+          <h2>最近巡检</h2>
+          <span class="muted">保留展示最近 20 次</span>
         </div>
-      </div>
-    </div>
-
-    <div class="panel" v-if="loading && !task" style="text-align:center; color:var(--dim); padding:40px 0">
-      <span class="spin"></span> 加载任务详情…
+        <div v-if="!detail.recent_logs.length" class="empty-state">
+          尚无巡检记录
+        </div>
+        <details
+          v-for="log in detail.recent_logs"
+          :key="log.log_id"
+          class="history-row"
+        >
+          <summary>
+            <span
+              class="timeline-dot"
+              :class="log.degradation_flag ? 'dot-amber' : 'dot-green'"
+            ></span
+            ><time>{{ formatTime(log.executed_at) }}</time
+            ><strong>{{
+              outcomes[log.outcome_type] || log.outcome_type
+            }}</strong
+            ><span class="muted">v{{ log.rule_version }}</span>
+          </summary>
+          <p>{{ log.headline }}</p>
+          <p class="muted">
+            {{ statusInfo(log.task_state_before).txt }} →
+            {{ statusInfo(log.task_state_after).txt
+            }}<template v-if="log.dedup_fingerprint">
+              · 去重指纹 {{ log.dedup_fingerprint }}</template
+            >
+          </p>
+          <p v-for="d in log.condition_details" :key="d.condition_id">
+            {{ d.label }}：{{ d.actual_value_display }} /
+            {{ d.threshold_display }}
+          </p>
+        </details>
+      </section>
+      <section v-if="tab === 'versions'" class="versions-section">
+        <div class="section-heading"><h2>规则版本变化</h2></div>
+        <div v-for="v in versions" :key="v.version_num" class="version-row">
+          <div class="section-heading">
+            <h3>
+              v{{ v.version_num
+              }}<span
+                v-if="v.version_num === task.current_version"
+                class="badge badge-green"
+                >当前版本</span
+              >
+            </h3>
+            <button
+              v-if="v.version_num !== task.current_version"
+              :disabled="busy"
+              @click="rollback(v.version_num)"
+            >
+              <RotateCcw :size="14" />恢复此版本
+            </button>
+          </div>
+          <p class="muted">
+            {{
+              v.change_reason ||
+              (v.change_type === "NL_INIT" ? "自然语言创建" : v.change_type)
+            }}
+          </p>
+          <div
+            v-for="(c, i) in v.diff_summary?.changes || []"
+            :key="i"
+            class="diff-item"
+          >
+            <span class="diff-path">{{ c.path }}</span
+            ><span class="diff-old">{{ c.old_value }}</span
+            ><span>→</span><span class="diff-new">{{ c.new_value }}</span>
+          </div>
+        </div>
+      </section>
+    </template>
+    <div v-else-if="!error" class="empty-state">
+      <span class="spin"></span>加载任务详情
     </div>
   </main>
 </template>

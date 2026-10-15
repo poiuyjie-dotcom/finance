@@ -12,6 +12,8 @@
 from __future__ import annotations
 
 import re
+import time
+from datetime import datetime, timedelta, timezone
 
 from .. import config
 from ..schemas.rule_ast import (
@@ -278,8 +280,21 @@ def parse_nl_to_rule(nl_query: str, cleaned_query: str = "") -> tuple[UnifiedMon
 
 
 # ---------------------------------------------------------------- LLM 增强通道（可选）
+_llm_status = {"status": "UNKNOWN", "last_sync": "", "last_error": "", "latency_ms": None}
+_llm_status_config = None
+
+
+def get_llm_status() -> dict:
+    global _llm_status_config
+    signature = (config.LLM_API_KEY, config.LLM_BASE_URL, config.LLM_MODEL)
+    if signature != _llm_status_config:
+        _llm_status.update(status="UNKNOWN", last_sync="", last_error="", latency_ms=None)
+        _llm_status_config = signature
+    return {"enabled": all(signature), "model": config.LLM_MODEL, **_llm_status}
+
+
 async def _llm_compile(nl_query: str) -> UnifiedMonitorRule | None:
-    if not (config.LLM_API_KEY and config.LLM_BASE_URL and config.LLM_MODEL):
+    if not get_llm_status()["enabled"]:
         return None
     import json
 
@@ -296,6 +311,7 @@ DataSourceType[FUYAO_QUOTE,FUYAO_VALUATION,FUYAO_CALENDAR,FUYAO_HOTLIST,IFIND_AN
 公告关键词用 announcement_keywords+CONTAINS_ANY；财报窗口用 days_to_earnings+IN_WINDOW。
 严禁包含任何预测、买卖建议表述。只输出 JSON，不要输出其他文字。
 用户输入：{nl_query}"""
+    started = time.perf_counter()
     try:
         async with httpx.AsyncClient(timeout=40) as ac:
             r = await ac.post(f"{config.LLM_BASE_URL.rstrip('/')}/chat/completions",
@@ -308,8 +324,16 @@ DataSourceType[FUYAO_QUOTE,FUYAO_VALUATION,FUYAO_CALENDAR,FUYAO_HOTLIST,IFIND_AN
             rule = UnifiedMonitorRule.model_validate(json.loads(content))
             rule.original_nl_query = nl_query
             rule.ai_interpretation_summary = sanitize_text(rule.ai_interpretation_summary)
+            _llm_status.update(status="HEALTHY", last_error="",
+                               last_sync=datetime.now(timezone(timedelta(hours=8))).isoformat(timespec="seconds"),
+                               latency_ms=round((time.perf_counter() - started) * 1000))
             return rule
-    except Exception:  # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001
+        # Keep credentials, provider URLs and model output out of the public health response.
+        reason = f"HTTP {exc.response.status_code}" if isinstance(exc, httpx.HTTPStatusError) else type(exc).__name__
+        _llm_status.update(status="ERROR", last_error=reason,
+                           last_sync=datetime.now(timezone(timedelta(hours=8))).isoformat(timespec="seconds"),
+                           latency_ms=round((time.perf_counter() - started) * 1000))
         return None
 
 

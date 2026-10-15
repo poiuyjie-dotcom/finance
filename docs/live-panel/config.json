@@ -1,0 +1,657 @@
+{
+  "meta": {
+    "title": "AlphaRadar · 投资监控与风险雷达",
+    "lang": "zh"
+  },
+  "canvas": {
+    "width": 1600,
+    "height": 1060,
+    "duration": 12,
+    "fps": 15
+  },
+  "theme": {
+    "preset": "light-pastel",
+    "fontSize": 21,
+    "lineHeight": 33,
+    "radius": 6,
+    "glow": false,
+    "colors": {
+      "bg": "#f7f9fa",
+      "ink": "#243632",
+      "dim": "#72817e",
+      "green": "#167b63",
+      "greenfill": "#edf7f2",
+      "blue": "#3a719b",
+      "bluefill": "#eef4fa",
+      "amber": "#a87723",
+      "amberfill": "#fff7e8",
+      "line": "#b9c9c3",
+      "paper": "#ffffff"
+    }
+  },
+  "clock": {
+    "start": "09:30:00",
+    "rate": 1
+  },
+  "machines": {
+    "flow": {
+      "type": "cycle",
+      "period": 3,
+      "values": [
+        {
+          "t": "检查规则",
+          "m": "自然语言编译草稿，等待用户确认",
+          "g": "示意"
+        },
+        {
+          "t": "采集证据",
+          "m": "按任务周期巡检，保留来源与业务时点",
+          "g": "示意"
+        },
+        {
+          "t": "执行判定",
+          "m": "代码比较条件，冷却与去重抑制重复提醒",
+          "g": "示意"
+        },
+        {
+          "t": "异常降级",
+          "m": "数据异常显式标记，恢复后重新评估",
+          "g": "示意"
+        }
+      ],
+      "log": {
+        "who": "AlphaRadar",
+        "c": "green"
+      }
+    }
+  },
+  "elements": [
+    {
+      "type": "text",
+      "x": 45,
+      "y": 58,
+      "w": 1510,
+      "t": "AlphaRadar",
+      "size": 44,
+      "c": "ink",
+      "b": true
+    },
+    {
+      "type": "text",
+      "x": 45,
+      "y": 110,
+      "w": 1510,
+      "t": "把关注点变成持续运行的监控，让每一次判定都有证据。",
+      "size": 25,
+      "c": "green",
+      "b": false
+    },
+    {
+      "type": "text",
+      "x": 45,
+      "y": 170,
+      "w": 1510,
+      "t": "01 / 建立监控",
+      "size": 17,
+      "c": "dim",
+      "b": false
+    },
+    {
+      "type": "box",
+      "x": 45,
+      "y": 205,
+      "w": 330,
+      "h": 160,
+      "color": "green",
+      "fill": "greenfill",
+      "pad": [
+        22,
+        22
+      ],
+      "lines": [
+        {
+          "t": "自然语言关注点",
+          "b": 1,
+          "size": 25,
+          "c": "green"
+        },
+        {
+          "t": "",
+          "h": 0.35
+        },
+        {
+          "t": "价格 · 事件 · 日历 · 热度",
+          "c": "ink",
+          "size": 19
+        },
+        {
+          "t": "客观条件，不生成买卖建议",
+          "c": "ink",
+          "size": 19
+        }
+      ]
+    },
+    {
+      "type": "box",
+      "x": 435,
+      "y": 205,
+      "w": 330,
+      "h": 160,
+      "color": "green",
+      "fill": "greenfill",
+      "pad": [
+        22,
+        22
+      ],
+      "lines": [
+        {
+          "t": "规则编译与合规",
+          "b": 1,
+          "size": 25,
+          "c": "green"
+        },
+        {
+          "t": "",
+          "h": 0.35
+        },
+        {
+          "t": "Jev / LLM 可选增强",
+          "c": "ink",
+          "size": 19
+        },
+        {
+          "t": "不可用时走确定性解析器",
+          "c": "ink",
+          "size": 19
+        }
+      ]
+    },
+    {
+      "type": "box",
+      "x": 825,
+      "y": 205,
+      "w": 330,
+      "h": 160,
+      "color": "green",
+      "fill": "greenfill",
+      "pad": [
+        22,
+        22
+      ],
+      "lines": [
+        {
+          "t": "用户检查与确认",
+          "b": 1,
+          "size": 25,
+          "c": "green"
+        },
+        {
+          "t": "",
+          "h": 0.35
+        },
+        {
+          "t": "修改阈值与 AND / OR 分支",
+          "c": "ink",
+          "size": 19
+        },
+        {
+          "t": "确认后创建版本化监控规则",
+          "c": "ink",
+          "size": 19
+        }
+      ]
+    },
+    {
+      "type": "box",
+      "x": 1215,
+      "y": 205,
+      "w": 330,
+      "h": 160,
+      "color": "green",
+      "fill": "greenfill",
+      "pad": [
+        22,
+        22
+      ],
+      "lines": [
+        {
+          "t": "长期调度",
+          "b": 1,
+          "size": 25,
+          "c": "green"
+        },
+        {
+          "t": "",
+          "h": 0.35
+        },
+        {
+          "t": "交易日历 · 任务巡检周期",
+          "c": "ink",
+          "size": 19
+        },
+        {
+          "t": "单实例 APScheduler",
+          "c": "ink",
+          "size": 19
+        }
+      ]
+    },
+    {
+      "type": "path",
+      "points": [
+        [
+          375,
+          285
+        ],
+        [
+          435,
+          285
+        ]
+      ],
+      "color": "green",
+      "width": 2,
+      "r": 8,
+      "flow": {
+        "period": 2.4,
+        "offsets": [
+          0,
+          0.5
+        ],
+        "color": "green",
+        "tail": 12
+      }
+    },
+    {
+      "type": "path",
+      "points": [
+        [
+          765,
+          285
+        ],
+        [
+          825,
+          285
+        ]
+      ],
+      "color": "green",
+      "width": 2,
+      "r": 8,
+      "flow": {
+        "period": 2.4,
+        "offsets": [
+          0,
+          0.5
+        ],
+        "color": "green",
+        "tail": 12
+      }
+    },
+    {
+      "type": "path",
+      "points": [
+        [
+          1155,
+          285
+        ],
+        [
+          1215,
+          285
+        ]
+      ],
+      "color": "green",
+      "width": 2,
+      "r": 8,
+      "flow": {
+        "period": 2.4,
+        "offsets": [
+          0,
+          0.5
+        ],
+        "color": "green",
+        "tail": 12
+      }
+    },
+    {
+      "type": "text",
+      "x": 45,
+      "y": 450,
+      "w": 1510,
+      "t": "02 / 执行、判定与追溯",
+      "size": 17,
+      "c": "dim",
+      "b": false
+    },
+    {
+      "type": "box",
+      "x": 45,
+      "y": 505,
+      "w": 330,
+      "h": 185,
+      "color": "blue",
+      "fill": "bluefill",
+      "pad": [
+        22,
+        22
+      ],
+      "lines": [
+        {
+          "t": "扶摇 + iFinD",
+          "b": 1,
+          "size": 25,
+          "c": "blue"
+        },
+        {
+          "t": "",
+          "h": 0.35
+        },
+        {
+          "t": "行情 / 估值 / 公告 / 日历",
+          "c": "ink",
+          "size": 19
+        },
+        {
+          "t": "双源核查 · 缓存与回退",
+          "c": "ink",
+          "size": 19
+        },
+        {
+          "t": "来源、时点、单位和口径",
+          "c": "ink",
+          "size": 19
+        }
+      ]
+    },
+    {
+      "type": "box",
+      "x": 435,
+      "y": 505,
+      "w": 330,
+      "h": 185,
+      "color": "green",
+      "fill": "greenfill",
+      "pad": [
+        22,
+        22
+      ],
+      "lines": [
+        {
+          "t": "确定性规则引擎",
+          "b": 1,
+          "size": 25,
+          "c": "green"
+        },
+        {
+          "t": "",
+          "h": 0.35
+        },
+        {
+          "t": "逐条件实测值 vs 阈值",
+          "c": "ink",
+          "size": 19
+        },
+        {
+          "t": "布尔组合与数据健康检查",
+          "c": "ink",
+          "size": 19
+        },
+        {
+          "t": "AI 不承担数值触发判定",
+          "c": "ink",
+          "size": 19
+        }
+      ]
+    },
+    {
+      "type": "box",
+      "x": 825,
+      "y": 505,
+      "w": 330,
+      "h": 185,
+      "color": "amber",
+      "fill": "amberfill",
+      "pad": [
+        22,
+        22
+      ],
+      "lines": [
+        {
+          "t": "状态机与执行日志",
+          "b": 1,
+          "size": 25,
+          "c": "amber"
+        },
+        {
+          "t": "",
+          "h": 0.35
+        },
+        {
+          "t": "运行 / 触发 / 冷却 / 去重",
+          "c": "ink",
+          "size": 19
+        },
+        {
+          "t": "降级 / 暂停 / 熔断 / 恢复",
+          "c": "ink",
+          "size": 19
+        },
+        {
+          "t": "版本变化与回滚",
+          "c": "ink",
+          "size": 19
+        }
+      ]
+    },
+    {
+      "type": "box",
+      "x": 1215,
+      "y": 505,
+      "w": 330,
+      "h": 185,
+      "color": "green",
+      "fill": "greenfill",
+      "pad": [
+        22,
+        22
+      ],
+      "lines": [
+        {
+          "t": "监控工作台",
+          "b": 1,
+          "size": 25,
+          "c": "green"
+        },
+        {
+          "t": "",
+          "h": 0.35
+        },
+        {
+          "t": "总览 → 详情 → 原始证据",
+          "c": "ink",
+          "size": 19
+        },
+        {
+          "t": "为什么触发 / 为什么未触发",
+          "c": "ink",
+          "size": 19
+        },
+        {
+          "t": "事实、推导、不确定性",
+          "c": "ink",
+          "size": 19
+        }
+      ]
+    },
+    {
+      "type": "path",
+      "points": [
+        [
+          1380,
+          365
+        ],
+        [
+          1380,
+          405
+        ],
+        [
+          25,
+          405
+        ],
+        [
+          25,
+          480
+        ],
+        [
+          210,
+          480
+        ],
+        [
+          210,
+          505
+        ]
+      ],
+      "color": "blue",
+      "width": 2,
+      "r": 8,
+      "flow": {
+        "period": 3,
+        "offsets": [
+          0,
+          0.5
+        ],
+        "color": "blue",
+        "tail": 12
+      }
+    },
+    {
+      "type": "path",
+      "points": [
+        [
+          375,
+          595
+        ],
+        [
+          435,
+          595
+        ]
+      ],
+      "color": "blue",
+      "width": 2,
+      "r": 8,
+      "flow": {
+        "period": 2.4,
+        "offsets": [
+          0,
+          0.5
+        ],
+        "color": "blue",
+        "tail": 12
+      }
+    },
+    {
+      "type": "path",
+      "points": [
+        [
+          765,
+          595
+        ],
+        [
+          825,
+          595
+        ]
+      ],
+      "color": "green",
+      "width": 2,
+      "r": 8,
+      "flow": {
+        "period": 2.4,
+        "offsets": [
+          0,
+          0.5
+        ],
+        "color": "green",
+        "tail": 12
+      }
+    },
+    {
+      "type": "path",
+      "points": [
+        [
+          1155,
+          595
+        ],
+        [
+          1215,
+          595
+        ]
+      ],
+      "color": "green",
+      "width": 2,
+      "r": 8,
+      "flow": {
+        "period": 2.4,
+        "offsets": [
+          0,
+          0.5
+        ],
+        "color": "green",
+        "tail": 12
+      }
+    },
+    {
+      "type": "text",
+      "x": 45,
+      "y": 750,
+      "w": 1510,
+      "t": "数据过期 / 双源冲突 / 接口失败 → 显式降级与核查 → 数据恢复后重新评估",
+      "size": 23,
+      "c": "amber",
+      "b": false
+    },
+    {
+      "type": "log",
+      "x": 45,
+      "y": 810,
+      "w": 1515,
+      "rows": 3,
+      "padTop": 20,
+      "padBottom": 25,
+      "padLeft": 24,
+      "title": "流程回放 · 示意",
+      "titleX": 24,
+      "titleW": 230,
+      "cols": [
+        {
+          "key": "time",
+          "x": 0
+        },
+        {
+          "key": "who",
+          "x": 155
+        },
+        {
+          "key": "m",
+          "x": 345
+        },
+        {
+          "key": "g",
+          "x": 1370
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "x": 45,
+      "y": 996,
+      "w": 1510,
+      "t": "流程动画为示意，并非实时行情、在线状态或生产运行日志。",
+      "size": 17,
+      "c": "dim",
+      "b": false
+    }
+  ],
+  "credit": {
+    "text": "图示来源：本项目代码 · 动画引擎：ythx-101 https://github.com/ythx-101/live-panel-skill",
+    "y": 1034,
+    "size": 14
+  }
+}

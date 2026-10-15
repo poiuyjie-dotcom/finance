@@ -1,164 +1,254 @@
 <script setup>
-import { computed, ref } from 'vue'
-import { api } from '../api'
-
-const props = defineProps({ selectedTask: Object })
-const emit = defineEmits(['changed', 'refreshDetail'])
-
-const citation = ref(null)   // 溯源弹层
-const expandedId = ref(null) // 展开长解释的条件
-
-const OUTCOME_CN = {
-  TRIGGERED_ALERT: { cls: 'badge-red', txt: '已触发提醒' },
-  NOT_TRIGGERED_NORMAL: { cls: 'badge-green', txt: '正常·未触发' },
-  SUPPRESSED_BY_DEDUP: { cls: 'badge-violet', txt: '去重拦截' },
-  SUPPRESSED_BY_COOLDOWN: { cls: 'badge-blue', txt: '冷却拦截' },
-  DEGRADED_STALE_DATA: { cls: 'badge-amber', txt: '数据过期降级' },
-  DEGRADED_CONFLICT_HOLD: { cls: 'badge-amber', txt: '双源冲突挂起' },
-  DEGRADED_API_FALLBACK: { cls: 'badge-amber', txt: '接口异常降级' },
-  RECOVERY: { cls: 'badge-green', txt: '已恢复' },
-  SKIPPED_MARKET_CLOSED: { cls: 'badge-gray', txt: '休市静默' },
+import { computed, ref, onMounted, onUnmounted } from "vue";
+import {
+  Check,
+  Minus,
+  TriangleAlert,
+  ArrowUpRight,
+  X,
+  FileSearch,
+  GitBranch,
+} from "lucide-vue-next";
+import { outcomes, formatTime } from "../presentation";
+const props = defineProps({ selectedTask: Object });
+const citation = ref(null);
+const latest = computed(() => props.selectedTask?.recent_logs?.[0]);
+const details = computed(() => latest.value?.condition_details || []);
+const met = computed(
+  () => details.value.filter((d) => d.is_met === true).length,
+);
+const problem = (d) =>
+  d.is_met == null ||
+  d.citation.is_stale ||
+  (d.citation.conflict_with && !d.citation.conflict_with.resolved_by) ||
+  /缓存回退|离线/.test(d.citation.source_name);
+const problems = computed(() => details.value.filter(problem).length);
+const verdictTitle = computed(() => {
+  if (
+    latest.value?.degradation_flag &&
+    latest.value?.outcome_type === "NOT_TRIGGERED_NORMAL"
+  ) {
+    return "数据不完整 · 判定受限";
+  }
+  return outcomes[latest.value?.outcome_type] || latest.value?.outcome_type;
+});
+const tone = computed(() =>
+  latest.value?.degradation_flag
+    ? "amber"
+    : latest.value?.outcome_type === "TRIGGERED_ALERT"
+      ? "red"
+      : "green",
+);
+function close(e) {
+  if (e.key === "Escape") citation.value = null;
 }
-
-const latest = computed(() => props.selectedTask?.recent_logs?.[0] || null)
-const logs = computed(() => props.selectedTask?.recent_logs || [])
-
-const mark = (met) => met === true ? '✅' : met === false ? '❌' : '⚠️'
-
-// 「有问题」= 无法判定 / 数据过期 / 双源冲突 / 降级数据源 —— 与业务上的未满足(❌)区分开
-function isProblem(d) {
-  const c = d.citation
-  return d.is_met === null || c.is_stale || c.conflict_with
-    || (c.source_name || '').includes('缓存回退') || (c.source_name || '').includes('离线')
-}
-const problemCount = computed(() => (latest.value?.condition_details || []).filter(isProblem).length)
-
-function toggleExpand(id) {
-  expandedId.value = expandedId.value === id ? null : id
-}
-
-async function runNow() {
-  if (!props.selectedTask) return
-  await api.evaluateNow(props.selectedTask.task.id)
-  emit('changed'); emit('refreshDetail', props.selectedTask.task.id)
-}
+onMounted(() => window.addEventListener("keydown", close));
+onUnmounted(() => window.removeEventListener("keydown", close));
 </script>
-
 <template>
-  <div class="panel">
-    <div class="panel-title">
-      为什么触发 / 未触发 · 逐条件归因
-      <span class="sub">v{{ selectedTask?.task?.current_version }} · 最近 {{ logs.length }} 次巡检</span>
-      <button class="mini" style="margin-left:auto" @click="runNow" v-if="selectedTask">立即巡检</button>
+  <section v-if="!latest" class="empty-state">
+    <FileSearch :size="32" />
+    <h3>等待首次巡检</h3>
+    <p>尚无判定结果</p>
+  </section>
+  <template v-else>
+    <div
+      v-if="latest.rule_version !== selectedTask.task.current_version"
+      class="banner banner-info"
+    >
+      规则已更新至 v{{ selectedTask.task.current_version }}；以下是 v{{
+        latest.rule_version
+      }}
+      的巡检记录，等待按新规则重新巡检。
     </div>
-
-    <div v-if="!latest" style="color:var(--dim); font-size:12px; padding:26px 0; text-align:center">
-      <span v-if="selectedTask" class="spin"></span>
-      {{ selectedTask ? ' 首次巡检进行中…' : '加载任务详情…' }}
+    <section class="verdict" :class="'verdict-' + tone">
+      <div class="verdict-icon">
+        <component
+          :is="
+            tone === 'amber'
+              ? TriangleAlert
+              : tone === 'red'
+                ? Check
+                : GitBranch
+          "
+          :size="25"
+        />
+      </div>
+      <div class="verdict-copy">
+        <div class="eyebrow">
+          最近一次判定 · {{ formatTime(latest.executed_at) }} · 规则 v{{
+            latest.rule_version
+          }}
+        </div>
+        <h2>{{ verdictTitle }}</h2>
+        <p>{{ latest.headline }}</p>
+      </div>
+      <div class="verdict-count">
+        <strong
+          >{{ met }}<span>/{{ details.length }}</span></strong
+        ><small>条件已满足</small>
+      </div>
+    </section>
+    <div class="section-heading evidence-heading">
+      <h2>
+        条件与证据 <span class="count">{{ details.length }}</span>
+      </h2>
+      <span :class="problems ? 'text-amber' : 'muted'">{{
+        problems ? `${problems} 个条件存在数据问题` : "按本次巡检规则逐项比较"
+      }}</span>
     </div>
-
-    <template v-else>
-      <!-- 顶部结论横幅 -->
-      <div class="banner" :class="latest.outcome_type === 'TRIGGERED_ALERT' ? 'banner-bad' : latest.outcome_type === 'NOT_TRIGGERED_NORMAL' ? 'banner-good' : 'banner-warn'">
-        <span class="badge" :class="OUTCOME_CN[latest.outcome_type]?.cls" style="margin-right:8px">
-          {{ OUTCOME_CN[latest.outcome_type]?.txt || latest.outcome_type }}
-        </span>
-        {{ latest.headline }}
-        <div style="font-size:10.5px; color:var(--dim); margin-top:4px">
-          巡检时点 {{ (latest.executed_at || '').replace('T', ' ').slice(0, 19) }} · 规则 v{{ latest.rule_version }}
-          · 状态流转 {{ latest.task_state_before }} → {{ latest.task_state_after }}
-          <template v-if="latest.dedup_fingerprint"> · 去重指纹 <span class="mono">{{ latest.dedup_fingerprint }}</span></template>
-          <template v-if="latest.cooldown_remaining_seconds > 0"> · 冷却剩余 {{ Math.floor(latest.cooldown_remaining_seconds / 60) }} 分 {{ latest.cooldown_remaining_seconds % 60 }} 秒</template>
+    <div class="evidence-grid">
+      <article
+        v-for="d in details"
+        :key="d.condition_id"
+        class="evidence-item"
+        :class="{ 'evidence-problem': problem(d) }"
+      >
+        <div class="evidence-top">
+          <span class="condition-id">{{ d.condition_id }}</span
+          ><span
+            class="condition-result"
+            :class="
+              problem(d) ? 'text-amber' : d.is_met ? 'text-green' : 'muted'
+            "
+            ><component
+              :is="problem(d) ? TriangleAlert : d.is_met ? Check : Minus"
+              :size="14"
+            />{{
+              problem(d) ? "数据待核查" : d.is_met ? "已满足" : "未满足"
+            }}</span
+          >
         </div>
-      </div>
-
-      <!-- 双源冲突对照 -->
-      <div v-for="d in latest.condition_details" :key="d.condition_id">
-        <div v-if="d.citation.conflict_with" class="banner banner-warn" style="margin-bottom:8px">
-          ⚖️ <b>{{ d.condition_id }} 多源冲突</b>：扶摇 {{ d.citation.raw_value }} vs {{ d.citation.conflict_with.source }}
-          {{ d.citation.conflict_with.value }}（偏差 {{ d.citation.conflict_with.diff_pct }}%）——系统挂起自动判定，请核查数据源
-        </div>
-      </div>
-
-      <!-- 条件状态速览条：一眼看出哪个条件有问题 -->
-      <div class="cond-summary">
-        <span v-for="d in latest.condition_details" :key="'s' + d.condition_id"
-              class="badge" :class="isProblem(d) ? 'badge-amber' : d.is_met === true ? 'badge-green' : 'badge-gray'"
-              :title="d.label">
-          {{ d.condition_id }} {{ d.is_met === true ? '✓' : d.is_met === false ? '✗' : '⚠' }}
-        </span>
-        <span v-if="problemCount" class="prob-hint">{{ problemCount }} 个条件存在数据问题（琥珀色）</span>
-      </div>
-
-      <!-- 逐条件对比：问题条件高亮 + 长解释折叠，点击行展开 -->
-      <div v-for="d in latest.condition_details" :key="'r' + d.condition_id"
-           class="cond-row" :class="{ problem: isProblem(d), expanded: expandedId === d.condition_id }"
-           @click="toggleExpand(d.condition_id)">
-        <span class="cond-mark">{{ mark(d.is_met) }}</span>
-        <div class="cond-body">
-          <div class="cond-label">{{ d.condition_id }} · {{ d.label }}
-            <span v-if="isProblem(d)" class="badge badge-amber" style="margin-left:4px">数据问题</span>
+        <h3>{{ d.label }}</h3>
+        <div class="value-comparison">
+          <div>
+            <span>当前实测</span><strong>{{ d.actual_value_display }}</strong>
           </div>
-          <div class="cond-vals">
-            <span>实测 <b>{{ d.actual_value_display }}</b></span>
-            <span>规则 <b>{{ d.threshold_display }}</b></span>
-            <span v-if="d.gap_pct != null && d.is_met === false">距触发 <b>{{ d.gap_pct > 0 ? '+' : '' }}{{ d.gap_pct }}%</b></span>
-            <span class="cite-tag" @click.stop="citation = d.citation" style="margin-top:0">
-              溯源 · {{ d.citation.source_name.slice(0, 14) }}
-            </span>
+          <div>
+            <span>触发条件</span><b>{{ d.threshold_display }}</b>
           </div>
-          <div class="cond-reason" :title="d.reason_snippet">{{ d.reason_snippet }}</div>
         </div>
-      </div>
-
-      <!-- 三段式解释（默认展开） -->
-      <div style="margin-top:6px">
-        <div class="sect sect-fact">
-          <h4>【客观事实 Fact】（可回溯至原始字段）</h4>
-          <ul><li v-for="(f, i) in latest.explanation.facts_list" :key="i">{{ f }}</li></ul>
+        <div
+          v-if="d.gap_pct != null && !d.is_met && !problem(d)"
+          class="gap-indicator"
+        >
+          <div>
+            <span
+              :style="{
+                width:
+                  Math.max(4, 100 - Math.min(100, Math.abs(d.gap_pct))) + '%',
+              }"
+            ></span>
+          </div>
+          <small>距阈值 {{ Math.abs(d.gap_pct) }}%</small>
         </div>
-        <div class="sect sect-infer">
-          <h4>【规则逻辑推导 Inference】</h4>
-          <ul><li v-for="(f, i) in latest.explanation.inference_list" :key="i">{{ f }}</li></ul>
-        </div>
-        <div class="sect sect-unc">
-          <h4>【不确定性与降级说明 Uncertainty】</h4>
-          {{ latest.explanation.uncertainty_and_degradation_note }}
-        </div>
-      </div>
-
-      <!-- 历史巡检时间轴 -->
-      <details style="margin-top:6px">
-        <summary style="cursor:pointer; color:var(--muted); font-size:12px">巡检历史（最近 {{ logs.length }} 次）</summary>
-        <div v-for="lg in logs" :key="lg.log_id" style="display:flex; gap:8px; align-items:center; padding:4px 0; font-size:11px; border-bottom:1px dashed var(--border)">
-          <span class="badge" :class="OUTCOME_CN[lg.outcome_type]?.cls">{{ OUTCOME_CN[lg.outcome_type]?.txt || lg.outcome_type }}</span>
-          <span style="color:var(--dim)">{{ (lg.executed_at || '').replace('T', ' ').slice(5, 19) }}</span>
-          <span style="color:var(--muted); flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ lg.headline }}</span>
-        </div>
+        <details class="condition-explanation">
+          <summary>判定依据</summary>
+          <p>{{ d.reason_snippet }}</p>
+          <p v-if="d.citation.conflict_with">
+            对照源 {{ d.citation.conflict_with.source }}：{{
+              d.citation.conflict_with.value
+            }}
+            · 偏差 {{ d.citation.conflict_with.diff_pct }}%
+          </p>
+        </details>
+        <button class="evidence-source" @click="citation = d.citation">
+          <FileSearch :size="14" /><span>{{ d.citation.source_name }}</span
+          ><ArrowUpRight :size="15" />
+        </button>
+      </article>
+    </div>
+    <section class="explanation-section">
+      <div class="section-heading"><h2>结论依据</h2></div>
+      <details class="explanation-row">
+        <summary>
+          <span class="explanation-number">01</span>客观事实<span class="muted"
+            >{{ latest.explanation.facts_list.length }} 条证据</span
+          >
+        </summary>
+        <ul>
+          <li v-for="(f, i) in latest.explanation.facts_list" :key="i">
+            {{ f }}
+          </li>
+        </ul>
       </details>
-    </template>
-  </div>
-
-  <!-- 溯源弹层 -->
-  <div v-if="citation" class="cite-pop" @click.self="citation = null">
-    <div class="cite-card">
-      <h3>字段级原始证据溯源</h3>
-      <dl class="kv">
-        <dt>数据源</dt><dd>{{ citation.source_name }}</dd>
-        <dt>接口 / MCP Tool</dt><dd class="mono">{{ citation.endpoint_or_tool }}</dd>
-        <dt>原始字段</dt><dd class="mono">{{ citation.raw_field_name }}</dd>
-        <dt>原始值</dt><dd><b>{{ JSON.stringify(citation.raw_value) }}</b></dd>
-        <dt>单位</dt><dd>{{ citation.unit }}</dd>
-        <dt>统计口径</dt><dd>{{ citation.statistical_caliber }}</dd>
-        <dt>数据业务时点</dt><dd class="mono">{{ citation.data_timestamp }}</dd>
-        <dt>系统拉取时点</dt><dd class="mono">{{ citation.fetch_timestamp }}</dd>
-        <dt v-if="citation.staleness_seconds > 0">数据延迟</dt>
-        <dd v-if="citation.staleness_seconds > 0" :style="{ color: citation.is_stale ? 'var(--red)' : 'var(--amber)' }">
-          {{ citation.staleness_seconds }} 秒{{ citation.is_stale ? '（超过容忍阈值，已标记过期）' : '' }}
-        </dd>
-      </dl>
-      <div class="raw-box">{{ JSON.stringify(citation, null, 2) }}</div>
-      <div style="margin-top:10px; text-align:right"><button @click="citation = null">关闭</button></div>
-    </div>
-  </div>
+      <details class="explanation-row">
+        <summary>
+          <span class="explanation-number">02</span>规则推导<span class="muted"
+            >确定性判定</span
+          >
+        </summary>
+        <ul>
+          <li v-for="(f, i) in latest.explanation.inference_list" :key="i">
+            {{ f }}
+          </li>
+        </ul>
+      </details>
+      <details class="explanation-row" :open="latest.degradation_flag">
+        <summary>
+          <span class="explanation-number">03</span>不确定性与数据边界<span
+            class="badge"
+            :class="latest.degradation_flag ? 'badge-amber' : 'badge-gray'"
+            >{{ latest.degradation_flag ? "存在降级" : "数据说明" }}</span
+          >
+        </summary>
+        <p>{{ latest.explanation.uncertainty_and_degradation_note }}</p>
+      </details>
+    </section>
+  </template>
+  <Teleport to="body"
+    ><div v-if="citation" class="cite-pop" @click.self="citation = null">
+      <section
+        class="cite-card evidence-drawer"
+        role="dialog"
+        aria-modal="true"
+        aria-label="原始证据"
+      >
+        <div class="section-heading">
+          <div>
+            <div class="eyebrow">SOURCE EVIDENCE</div>
+            <h2>原始证据</h2>
+          </div>
+          <button
+            class="icon-button"
+            title="关闭证据"
+            aria-label="关闭证据"
+            autofocus
+            @click="citation = null"
+          >
+            <X :size="20" />
+          </button>
+        </div>
+        <span
+          class="badge"
+          :class="citation.is_stale ? 'badge-amber' : 'badge-green'"
+          >{{ citation.is_stale ? "数据过期" : "来源记录" }}</span
+        >
+        <dl class="kv">
+          <dt>数据源</dt>
+          <dd>{{ citation.source_name }}</dd>
+          <dt>接口 / 工具</dt>
+          <dd>{{ citation.endpoint_or_tool }}</dd>
+          <dt>原始字段</dt>
+          <dd class="mono">{{ citation.raw_field_name }}</dd>
+          <dt>原始值</dt>
+          <dd class="raw-value">
+            {{ JSON.stringify(citation.raw_value) }} {{ citation.unit }}
+          </dd>
+          <dt>统计口径</dt>
+          <dd>{{ citation.statistical_caliber }}</dd>
+          <dt>业务时点</dt>
+          <dd>{{ citation.data_timestamp }}</dd>
+          <dt>拉取时点</dt>
+          <dd>{{ citation.fetch_timestamp }}</dd>
+          <dt>数据延迟</dt>
+          <dd>{{ citation.staleness_seconds }} 秒</dd>
+        </dl>
+        <details class="raw-details">
+          <summary>完整原始记录</summary>
+          <pre class="raw-box">{{ JSON.stringify(citation, null, 2) }}</pre>
+        </details>
+      </section>
+    </div></Teleport
+  >
 </template>

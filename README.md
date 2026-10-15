@@ -1,5 +1,11 @@
 # AlphaRadar · 可配置投资监控与风险雷达
 
+[![AlphaRadar：自然语言建任务、双源巡检、确定性判定与证据追溯](docs/live-panel/overview.gif)](https://radar.poiuyjie.online/architecture)
+
+[在线工作台](https://radar.poiuyjie.online/) · [动态架构原图](https://radar.poiuyjie.online/architecture) · [高清静态图](docs/live-panel/overview.png) · [主图配置与制作说明](docs/live-panel/README.md)
+
+主图中的数据包与日志为流程示意，不代表实时运行数据。动画使用 [live-panel-skill](https://github.com/ythx-101/live-panel-skill) 制作，布局与内容依据本项目实现。
+
 > 将投资者的自然语言关注点编译为**形式化、可检查、可修改、可追溯**的长期运行监控任务，提供全透明的「为什么触发 / 为什么未触发」逐条件归因解释与多级数据异常降级保护。
 >
 > **本产品不输出涨跌预测、收益承诺或买卖建议；事实、推断与不确定信息严格区分。**
@@ -7,6 +13,23 @@
 **🌐 在线演示：<https://radar.poiuyjie.online>**（AWS 新加坡 + Cloudflare，systemd 常驻）
 
 ## 产品截图
+
+### 当前页面与操作流程（2026-10-15）
+
+- **监控总览 `/`**：状态统计、优先关注、任务搜索与筛选，快速进入任务详情。
+- **新建监控 `/new`**：描述关注点 → 检查规则与调度 → 确认启动；完整支持根条件和嵌套分支编辑。
+- **任务详情 `/task/:id`**：当前判定、监控规则、巡检记录、版本变化四个页签。实测与阈值并列，原始证据侧栏可追溯。
+- **运行验证 `/validation`**：集中验证过期、冲突、超时与合规边界；模拟状态在全局显示。
+
+界面采用浅色工作台、语义状态色和桌面侧栏 / 移动端顶部导航。长解释按需展开，异常说明保留可见。旧版本的巡检结果明确标出版本，避免误认为新规则已执行。
+
+左下角分组展示扶摇、iFinD 数据接口与 Jev、规则编译模型接口。模型名称、最近调用时点与状态以实际请求结果为准；未配置、待调用、调用正常和异常回退分别展示，轮询健康状态不会额外调用付费模型。配置变更后清除旧连接状态；移动端可在设置中查看。
+
+![新版监控总览](screenshots/redesign-overview.png)
+
+![新版条件与证据](screenshots/redesign-detail.png)
+
+以下截图保留作原版功能记录。
 
 **工作台（首页）：任务雷达 · 自然语言创建监控 · 异常模拟控制台 —— 点击任务卡进入详情页**
 
@@ -31,7 +54,7 @@
 ## 1. 快速启动（一键）
 
 ```bash
-git clone https://github.com/sodium02624-art/finance.git
+git clone https://github.com/poiuyjie-dotcom/finance.git
 cd finance
 bash start.sh          # Windows 双击 start.bat
 # 浏览器打开 http://localhost:8000

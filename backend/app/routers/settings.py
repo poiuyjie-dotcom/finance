@@ -12,6 +12,7 @@ from pydantic import BaseModel
 
 from .. import config
 from ..services import data_adapter as da
+from ..services import jev_client, nl2rule_compiler
 
 router = APIRouter()
 
@@ -44,7 +45,9 @@ def _settings_view() -> dict:
         "env_writable": os.access(_ENV_PATH.parent, os.W_OK),
         "scheduler_tick_seconds": config.SCHEDULER_TICK_SECONDS,
         "tz": config.TZ_NAME,
-        "health": {"fuyao": da.get_health()["FUYAO"], "ifind": da.get_health()["IFIND"]},
+        "health": {"fuyao": da.get_health()["FUYAO"], "ifind": da.get_health()["IFIND"],
+                   "jev": {"enabled": jev_client.is_enabled(), "model": config.JEV_MODEL, **jev_client.get_status()},
+                   "llm": nl2rule_compiler.get_llm_status()},
     }
 
 

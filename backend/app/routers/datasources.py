@@ -3,6 +3,8 @@ from fastapi import APIRouter
 
 from ..services import chaos_injector, data_adapter as da
 from ..services import jev_client
+from ..services import nl2rule_compiler
+from .. import config
 
 router = APIRouter()
 
@@ -15,7 +17,8 @@ async def health():
         "status": "OK",
         "fuyao": da.get_health()["FUYAO"],
         "ifind": da.get_health()["IFIND"],
-        "jev": {"enabled": jev_client.is_enabled(), **jev_client.get_status()},
+        "jev": {"enabled": jev_client.is_enabled(), "model": config.JEV_MODEL, **jev_client.get_status()},
+        "llm": nl2rule_compiler.get_llm_status(),
         "chaos": chaos_injector.get_state(),
         "trading_calendar": {"is_trading_day": phase["is_trading_day"], "market_phase": phase["phase"],
                              "now_bj": da.iso_bj()},
