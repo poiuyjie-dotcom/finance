@@ -1,20 +1,29 @@
 # AlphaRadar · 可配置投资监控与风险雷达
 
+把自然语言关注点变成持续运行的监控任务，并通过逐条件实测与原始证据解释为什么触发、为什么未触发。
+
+**[在线体验](https://radar.poiuyjie.online/) · [180 秒无讲解演示](https://radar.poiuyjie.online/demo/alpharadar-demo-180s.mp4) · [提交说明](SUBMISSION.md) · [测试与验证](TEST_SPECIFICATION.md)**
+
 [![AlphaRadar：自然语言建任务、双源巡检、确定性判定与证据追溯](docs/live-panel/overview.gif)](https://radar.poiuyjie.online/architecture)
 
 [在线工作台](https://radar.poiuyjie.online/) · [动态架构原图](https://radar.poiuyjie.online/architecture) · [高清静态图](docs/live-panel/overview.png) · [主图配置与制作说明](docs/live-panel/README.md)
 
 主图中的数据包与日志为流程示意，不代表实时运行数据。动画使用 [live-panel-skill](https://github.com/ythx-101/live-panel-skill) 制作，布局与内容依据本项目实现。
 
-> 将投资者的自然语言关注点编译为**形式化、可检查、可修改、可追溯**的长期运行监控任务，提供全透明的「为什么触发 / 为什么未触发」逐条件归因解释与多级数据异常降级保护。
->
-> **本产品不输出涨跌预测、收益承诺或买卖建议；事实、推断与不确定信息严格区分。**
+本产品用于客观条件监控，不提供涨跌预测、收益承诺或买卖建议。
 
-**🌐 在线演示：<https://radar.poiuyjie.online>**（AWS 新加坡 + Cloudflare，systemd 常驻）
+| 核心能力 | 实际体验 |
+| :--- | :--- |
+| 可检查的组合规则 | 自然语言生成草稿，检查或修改 AND / OR 条件、阈值及调度后再启动 |
+| 可追溯的判定 | 实测值与阈值并列，点击条件证据查看原始字段、来源、时点、单位和口径 |
+| 持续运行的任务 | 调度、状态、冷却、去重、巡检记录及规则版本恢复 |
+| 显式的数据保护 | 过期、双源冲突、接口失败和缓存回退均保留状态与解释 |
+
+**技术栈：Vue 3 + Vite + FastAPI + SQLAlchemy / SQLite + APScheduler。** 前后端通过 REST API 分离，线上采用同域部署，详见[技术架构](#3-技术架构)。
+
+交付文档：[提交清单](SUBMISSION.md) · [AI 使用与验证记录](AI_USAGE_AND_VERIFICATION.md) · [测试说明](TEST_SPECIFICATION.md) · [视频章节与制作说明](docs/demo/README.md)
 
 ## 产品截图
-
-[观看 180 秒无讲解操作演示](https://radar.poiuyjie.online/demo/alpharadar-demo-180s.mp4)
 
 ### 当前页面与操作流程（2026-10-15）
 
@@ -62,6 +71,8 @@
 
 ## 1. 快速启动（一键）
 
+环境要求：Python 3.10+。开发前端时另需 Node.js 与 npm；使用随仓库提供的构建产物启动时无需 Node.js。
+
 ```bash
 git clone https://github.com/poiuyjie-dotcom/finance.git
 cd finance
@@ -93,11 +104,13 @@ LLM_MODEL=
 ENABLE_HIGH_FIDELITY_FALLBACK=true
 ```
 
-### 1.2 前后端分离开发模式（可选）
+### 1.2 前后端分别启动（开发模式）
+
+在仓库根目录打开两个终端，分别运行以下命令。浏览器访问 `http://localhost:5173`，Vite 将 `/api` 请求代理到 FastAPI 的 8000 端口。
 
 ```bash
-# 后端（端口 8000）
-cd backend && uvicorn app.main:app --reload --port 8000
+# 终端一：后端（已通过一键启动脚本安装依赖后）
+backend/.venv/bin/uvicorn app.main:app --app-dir backend --reload --port 8000
 
 # 前端（端口 5173，/api 代理到 8000；改完 npm run build 会输出到 frontend/dist）
 cd frontend && npm install && npm run dev
@@ -115,28 +128,29 @@ cd backend && pytest -v tests/    # 17 个用例：主链路 / 异常降级 / �
 | :--- | :--- | :--- |
 | 个人深度投资者 | 行情软件只能设单一价格闹钟，无法表达「跌破200元且放量，或出减持公告且临近财报」 | 统一规则 AST：价格/涨跌幅/换手率/估值/公告/日历/热榜/期货联动，AND/OR 组合 |
 | 投研助理 / 风控岗 | 监控是黑盒：不知道还在不在跑、为何不触发、同一公告反复轰炸 | 6 态状态机 + SHA-256 去重指纹 + 冷却静默 + 逐条件实测快照透视 |
-| 合规敏感用户 | LLM 直接判行情有幻觉；接口超时/双源打架时静默给"正常"结论 | AI 只做规则编译与归因转写，数值判定 100% Python 确定性引擎；异常显式降级 |
+| 合规敏感用户 | 模型误判数值；接口超时或双源冲突时无法识别结论可靠性 | AI 辅助规则编译与语义检查，数值由确定性引擎判定；异常显式降级 |
 
-## 3. 核心架构
+## 3. 技术架构
 
-```
-自然语言 ──AI 编译──▶ UnifiedMonitorRule (Rule AST 草稿) ──用户检查/修改──▶ 任务 (v1)
-                                                                        │
-              ┌──────────────── APScheduler 每 30s 巡检（按任务 interval 到期）────────────────┐
-              ▼                                                                                ▼
-     data_adapter（扶摇 REST + iFinD MCP 双源，节流/重试/缓存/冲突检测/过期检测）
-              ▼
-     evaluator（确定性数值比较 + EvidenceCitation 逐条件绑定原始字段/时点/单位/口径）
-              ▼
-     state_machine（布尔合成 → 冷却/去重/降级判定 → 状态流转 → 版本钩子）
-              ▼
-     TaskExecutionLog（Why/Why-Not 快照：事实/推断/不确定性三段式解释）──▶ 监控总览与任务详情
-```
+### 前后端分离与线上部署
+
+| 层次 | 技术与职责 |
+| :--- | :--- |
+| 前端 `frontend/` | Vue 3、Vue Router、Vite；负责页面路由、组合规则编辑、任务状态和证据交互 |
+| API `/api/v1` | JSON REST API；连接任务管理、规则编译、巡检、版本、接口健康与异常验证 |
+| 后端 `backend/` | FastAPI、Pydantic；负责输入校验、合规检查、数据适配、确定性判定和版本管理 |
+| 数据与调度 | SQLAlchemy / SQLite 保存任务、规则版本和执行日志；APScheduler 按任务周期巡检 |
+
+**开发时分别运行**：前端 5173 端口，后端 8000 端口，通过 Vite 代理联调。前端通过 API 获取与更新业务数据。
+
+**当前生产环境同域部署**：Cloudflare → 新加坡服务器 Nginx → FastAPI（systemd 常驻）。FastAPI 同时提供 `/api/v1` 接口和 `frontend/dist/` 静态产物；这是部署方式，前后端源码和职责仍然分离。也可把前端构建产物部署到独立静态站点，并将 `/api` 反向代理到后端。
+
+业务流程见顶部动态架构图：规则草稿经用户确认后保存版本，调度器驱动取数与确定性判定，结果绑定原始证据并写入执行日志。动画仅作流程示意。
 
 ### 3.1 统一规则模型（`backend/app/schemas/rule_ast.py`）
 
 - 两层 AST：`RuleGroup (AND/OR，支持嵌套)` + `ConditionLeaf`。
-- 五大条件维度：`PRICE_VALUATION` / `EVENT_ANNOUNCEMENT` / `CALENDAR_WINDOW` / `SENTIMENT_HEAT` / `COMPOSITE_PORTFOLIO`。
+- 已实现价格估值、公告事件、日历窗口、热度及期货联动条件；`COMPOSITE_PORTFOLIO` 仅预留 Schema，跨标的相对强弱评估尚未实现。
 - 每个叶子条件强制携带：`unit`（单位）、`statistical_caliber`（统计口径）、`primary_source/backup_source`（数据源路由）、`staleness_tolerance_seconds`（过期容忍）。
 
 ### 3.2 调度、状态机、去重、冷却、恢复与版本
@@ -156,17 +170,17 @@ cd backend && pytest -v tests/    # 17 个用例：主链路 / 异常降级 / �
 | 接口失败 | 2 次退避重试后仍失败 | 缓存回退（`CACHE_FALLBACK`）/ 离线高仿真回退（显式标注） | 明示"基于缓存/离线数据，不代表实时正常" |
 | 恢复 | 后续巡检数据新鲜且无冲突 | 自动退出 `DEGRADED`，日志插入 `[RECOVERY]` 记录 | 数据源已恢复正常，退出降级模式 |
 
-**铁律：凡依赖降级数据的巡检，outcome 一律不得为 `NOT_TRIGGERED_NORMAL` / 正式触发。**
+界面同时展示任务状态、条件证据与降级说明。未裁决冲突会挂起自动判定；命中条件依赖过期、缓存或离线数据时，不生成正式告警。
 
 「运行验证」页面可注入上述三类故障用于演示与测试。
 
 ## 4. AI 的角色与合规边界
 
 **AI 做什么：**
-1. **规则编译器**：把自然语言编译为 `UnifiedMonitorRule` JSON 草稿。默认走**确定性解析器**（零幻觉可复现）；配置 `LLM_API_KEY` 后启用 LLM 增强通道，输出仍强制过 Pydantic 校验 + 合规清洗，失败自动回退。
-2. **归因转写**：基于确定性引擎产出的布尔结果与原始证据，转写为【事实/推断/不确定性】三段式解释（本实现中该转写亦为确定性模板，进一步消除幻觉面）。
+1. **规则编译器**：把自然语言编译为 `UnifiedMonitorRule` JSON 草稿。未配置 LLM 时使用内置确定性解析器，支持范围受解析规则限制；配置兼容的 LLM 接口、密钥与模型后启用增强通道，输出通过 Pydantic 校验与合规清洗，失败自动回退。草稿均需用户检查确认。
+2. **归因解释**：基于确定性引擎产出的布尔结果与原始证据，用模板生成【事实/推断/不确定性】三段式说明；当前实现不调用 LLM 撰写这部分内容。
 3. **Jev 系统一模型（可选增强）**：接入 [TypeSafe Jev](https://docs.typesafe.ai/) 承担两类**模糊语义判断**——
-   - **合规语义护栏**：与确定性正则护栏独立并行，输出「预测/荐股意图概率 + 意图分类（客观监控/混合/纯违规）」；拦截与放行的**决策规则全部由代码执行**（纯违规且概率 > 0.8 才拦截），双护栏结论在界面上并列展示；
+   - **合规语义护栏**：与确定性正则护栏分别检查，再由代码合并结果；输出「预测/荐股意图概率 + 意图分类（客观监控/混合/纯违规）」。语义护栏的拦截条件为纯违规且预测意图概率 > 0.8，确定性护栏仍独立生效；
    - **公告情绪归因**：公告关键词命中后，对命中标题做 利空/中性/利好 分类与重大利空概率估计，仅用于增强解释，**不改变 is_met 的确定性判定**。
    Jev 不可用（未配置/超时）时全链路静默回退，主功能不受影响。
 
@@ -196,7 +210,7 @@ cd backend && pytest -v tests/    # 17 个用例：主链路 / 异常降级 / �
 **已知边界：**
 1. iFinD MCP 免费版限流 2 请求/秒：行情类高频巡检全部走扶摇（不限量），iFinD 仅用于换手率/指数 PE/公告/期货等低频字段，并做全局串行节流。
 2. 扶摇交易日历仅回溯近一年，未来财报窗口按工作日近似（解释文本中已标注该不确定性）。
-3. 公告语义理解为关键词组合 + 语义检索命中，未做长 PDF 深度解析（保证毫秒级响应与 100% 可解释）。
+3. 公告通过 iFinD 检索后按关键词筛选，命中标题可交给 Jev 补充情绪归因；未做长 PDF 深度解析，响应速度受上游接口、网络和模型调用影响。
 4. 单实例部署（APScheduler 进程内调度）；多副本需外置调度锁（未做事项）。
 
 **未做事项（后续迭代）：**
@@ -221,6 +235,10 @@ alpharadar/
 │   └── tests/                      # 17 个用例：主链路/降级/合规/模型状态
 ├── frontend/                       # Vue 3 + Vite SPA（多页监控工作台；dist/ 为随仓库提交的预构建产物）
 ├── start.sh / start.bat            # 一键安装并启动
+├── SUBMISSION.md                   # 提交清单、网址与材料入口
+├── docs/demo/                      # 180 秒演示视频与章节
+├── docs/live-panel/                # 动态架构图与可编辑配置
+├── screenshots/                    # 当前版本页面截图
 ├── README.md / AI_USAGE_AND_VERIFICATION.md / TEST_SPECIFICATION.md
 └── backend/.env.example
 ```
