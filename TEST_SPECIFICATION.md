@@ -4,7 +4,7 @@
 
 | 层级 | 工具 | 位置 | 覆盖 |
 | :--- | :--- | :--- | :--- |
-| 自动化测试 | pytest + FastAPI TestClient + pytest-asyncio | `backend/tests/`（11 用例） | 主链路、状态机抑制、异常降级、合规边界 |
+| 自动化测试 | pytest + FastAPI TestClient + pytest-asyncio | `backend/tests/`（17 用例） | 主链路、状态机抑制、异常降级、合规边界、模型健康状态 |
 | 可视化故障注入 | 前端「异常模拟控制台」+ `/api/v1/simulator/*` | Web 工作台 | 数据过期/双源冲突/接口超时的一键演示 |
 | 双源交叉验证 | 真实接口实测 | 开发期验证 | 扶摇 vs iFinD 同标的价格一致性 |
 
@@ -56,7 +56,7 @@ pytest -v tests/
 
 架构动画使用 live-panel-skill，124 个采样检查无问题，4 个重复帧一致；动画为流程示意，不代表生产实时遥测。
 
-后端：`backend/.venv/bin/python -m pytest -q backend/tests`，11 项通过。
+后端：`backend/.venv/bin/python -m pytest -q backend/tests`，最新完整回归 17 项通过（原主链路等 11 项，加模型健康状态 6 项）。
 
 前端：`cd frontend && npm run build`，生产构建通过。
 
