@@ -6,6 +6,9 @@
 - `overview.png`：无动画的高清图。
 - `index.html`：无需后端即可打开的独立动态页面；线上路径 `/architecture`。
 - `build_config.py` / `config.json`：可编辑布局与生成的配置。
+- `technical.gif` / `technical.png`：前后端分离技术架构动画与高清图。
+- `technical.html`：技术架构动态页面，线上路径 `/architecture/technical`。
+- `build_technical.py` / `technical-config.json`：技术架构的可编辑布局与配置。
 
 使用 [ythx-101/live-panel-skill](https://github.com/ythx-101/live-panel-skill) 的渲染引擎生成，未复刻其示例图。引擎及其内嵌 Lucide 代码的许可保留在本目录。
 
@@ -20,3 +23,7 @@ ffmpeg -ss 4.5 -i /tmp/radar-overview.mp4 -frames:v 1 docs/live-panel/overview.p
 ```
 
 可用 `--chrome /path/to/chrome` 指定浏览器。主图验证采样 124 个时点，并检查文字溢出、重叠与回放确定性。
+
+技术架构图依据 `frontend/src/api.js`、`frontend/vite.config.js`、`backend/app/main.py`、服务与模型源码，以及线上 Nginx / systemd 部署配置绘制。箭头示意请求、响应或服务依赖，虚线为可选模型通道；并非完整的逐请求时序图。技术架构图同样通过 124 个时点的布局检查与四个时点的重复回放检查。
+
+生成技术架构图时，将上述流程中的 `build_config.py` 换成 `build_technical.py`，配置文件换成 `technical-config.json`，输出名分别换成 `technical.html`、`technical.gif`、`technical.png`。

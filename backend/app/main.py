@@ -62,6 +62,11 @@ async def architecture_diagram():
     return FileResponse(Path(__file__).resolve().parents[2] / "docs" / "live-panel" / "index.html")
 
 
+@app.get("/architecture/technical", include_in_schema=False)
+async def technical_architecture_diagram():
+    return FileResponse(Path(__file__).resolve().parents[2] / "docs" / "live-panel" / "technical.html")
+
+
 @app.get("/demo/alpharadar-demo-180s.mp4", include_in_schema=False)
 async def product_demo_video():
     return FileResponse(

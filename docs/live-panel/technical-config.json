@@ -1,0 +1,917 @@
+{
+  "meta": {
+    "title": "AlphaRadar · 前后端分离技术架构",
+    "lang": "zh"
+  },
+  "canvas": {
+    "width": 1600,
+    "height": 1320,
+    "duration": 12,
+    "fps": 15
+  },
+  "theme": {
+    "preset": "light-pastel",
+    "fontSize": 20,
+    "lineHeight": 32,
+    "radius": 6,
+    "glow": false,
+    "colors": {
+      "bg": "#f7f9fa",
+      "ink": "#243632",
+      "dim": "#72817e",
+      "green": "#167b63",
+      "greenfill": "#edf7f2",
+      "blue": "#3a719b",
+      "bluefill": "#eef4fa",
+      "amber": "#a87723",
+      "amberfill": "#fff7e8",
+      "line": "#b9c9c3",
+      "paper": "#ffffff"
+    }
+  },
+  "clock": {
+    "start": "09:30:00",
+    "rate": 1
+  },
+  "machines": {
+    "request": {
+      "type": "cycle",
+      "period": 3,
+      "values": [
+        {
+          "t": "规则编译",
+          "m": "前端提交自然语言，后端校验并返回规则草稿",
+          "g": "示意"
+        },
+        {
+          "t": "用户确认",
+          "m": "用户检查后保存任务与规则版本",
+          "g": "示意"
+        },
+        {
+          "t": "后台巡检",
+          "m": "调度触发取数，确定性引擎判定并保存证据",
+          "g": "示意"
+        },
+        {
+          "t": "结果查询",
+          "m": "前端通过 API 查询状态、执行日志与原始证据",
+          "g": "示意"
+        }
+      ],
+      "log": {
+        "who": "调用链路",
+        "c": "green"
+      }
+    }
+  },
+  "elements": [
+    {
+      "type": "text",
+      "x": 60,
+      "y": 60,
+      "w": 1480,
+      "t": "AlphaRadar · 前后端分离技术架构",
+      "size": 40,
+      "c": "ink",
+      "b": true
+    },
+    {
+      "type": "text",
+      "x": 60,
+      "y": 112,
+      "w": 1480,
+      "t": "独立前端与 API 后端，确定性判定与可追溯存储。",
+      "size": 25,
+      "c": "green",
+      "b": false
+    },
+    {
+      "type": "text",
+      "x": 60,
+      "y": 170,
+      "w": 1480,
+      "t": "01 / 页面与接口",
+      "size": 17,
+      "c": "dim",
+      "b": false
+    },
+    {
+      "type": "box",
+      "x": 60,
+      "y": 205,
+      "w": 420,
+      "h": 180,
+      "color": "blue",
+      "fill": "bluefill",
+      "pad": [
+        20,
+        20
+      ],
+      "lines": [
+        {
+          "t": "Vue 3 + Vite 前端",
+          "b": 1,
+          "size": 25,
+          "c": "blue"
+        },
+        {
+          "t": "",
+          "h": 0.3
+        },
+        {
+          "t": "Vue Router · 页面与交互",
+          "c": "ink",
+          "size": 19
+        },
+        {
+          "t": "组合规则编辑 / 状态 / 证据",
+          "c": "ink",
+          "size": 19
+        },
+        {
+          "t": "开发端口 5173",
+          "c": "ink",
+          "size": 19
+        }
+      ]
+    },
+    {
+      "type": "box",
+      "x": 590,
+      "y": 205,
+      "w": 420,
+      "h": 180,
+      "color": "green",
+      "fill": "greenfill",
+      "pad": [
+        20,
+        20
+      ],
+      "lines": [
+        {
+          "t": "REST API /api/v1",
+          "b": 1,
+          "size": 25,
+          "c": "green"
+        },
+        {
+          "t": "",
+          "h": 0.3
+        },
+        {
+          "t": "JSON 请求与响应",
+          "c": "ink",
+          "size": 19
+        },
+        {
+          "t": "任务 / 编译 / 巡检 / 版本",
+          "c": "ink",
+          "size": 19
+        },
+        {
+          "t": "开发时由 Vite 代理 /api",
+          "c": "ink",
+          "size": 19
+        }
+      ]
+    },
+    {
+      "type": "box",
+      "x": 1120,
+      "y": 205,
+      "w": 420,
+      "h": 180,
+      "color": "green",
+      "fill": "greenfill",
+      "pad": [
+        20,
+        20
+      ],
+      "lines": [
+        {
+          "t": "FastAPI 后端入口",
+          "b": 1,
+          "size": 25,
+          "c": "green"
+        },
+        {
+          "t": "",
+          "h": 0.3
+        },
+        {
+          "t": "路由与 Pydantic 校验",
+          "c": "ink",
+          "size": 19
+        },
+        {
+          "t": "业务处理与接口健康状态",
+          "c": "ink",
+          "size": 19
+        },
+        {
+          "t": "开发端口 8000",
+          "c": "ink",
+          "size": 19
+        }
+      ]
+    },
+    {
+      "type": "path",
+      "points": [
+        [
+          480,
+          270
+        ],
+        [
+          590,
+          270
+        ]
+      ],
+      "color": "blue",
+      "width": 2,
+      "r": 8,
+      "flow": {
+        "period": 2.8,
+        "offsets": [
+          0,
+          0.5
+        ],
+        "color": "blue",
+        "tail": 12
+      }
+    },
+    {
+      "type": "path",
+      "points": [
+        [
+          590,
+          330
+        ],
+        [
+          480,
+          330
+        ]
+      ],
+      "color": "blue",
+      "width": 2,
+      "r": 8,
+      "flow": {
+        "period": 3.4,
+        "offsets": [
+          0,
+          0.5
+        ],
+        "color": "blue",
+        "tail": 12
+      }
+    },
+    {
+      "type": "path",
+      "points": [
+        [
+          1010,
+          270
+        ],
+        [
+          1120,
+          270
+        ]
+      ],
+      "color": "green",
+      "width": 2,
+      "r": 8,
+      "flow": {
+        "period": 2.8,
+        "offsets": [
+          0,
+          0.5
+        ],
+        "color": "green",
+        "tail": 12
+      }
+    },
+    {
+      "type": "path",
+      "points": [
+        [
+          1120,
+          330
+        ],
+        [
+          1010,
+          330
+        ]
+      ],
+      "color": "green",
+      "width": 2,
+      "r": 8,
+      "flow": {
+        "period": 3.4,
+        "offsets": [
+          0,
+          0.5
+        ],
+        "color": "green",
+        "tail": 12
+      }
+    },
+    {
+      "type": "text",
+      "x": 60,
+      "y": 440,
+      "w": 1480,
+      "t": "02 / 后端服务与可选模型",
+      "size": 17,
+      "c": "dim",
+      "b": false
+    },
+    {
+      "type": "box",
+      "x": 60,
+      "y": 480,
+      "w": 420,
+      "h": 180,
+      "color": "amber",
+      "fill": "amberfill",
+      "pad": [
+        20,
+        20
+      ],
+      "lines": [
+        {
+          "t": "APScheduler 调度",
+          "b": 1,
+          "size": 25,
+          "c": "amber"
+        },
+        {
+          "t": "",
+          "h": 0.3
+        },
+        {
+          "t": "按任务周期发起后台巡检",
+          "c": "ink",
+          "size": 19
+        },
+        {
+          "t": "结合交易日历与市场时段",
+          "c": "ink",
+          "size": 19
+        },
+        {
+          "t": "单实例进程内运行",
+          "c": "ink",
+          "size": 19
+        }
+      ]
+    },
+    {
+      "type": "box",
+      "x": 590,
+      "y": 480,
+      "w": 420,
+      "h": 180,
+      "color": "green",
+      "fill": "greenfill",
+      "pad": [
+        20,
+        20
+      ],
+      "lines": [
+        {
+          "t": "任务管理与规则编译",
+          "b": 1,
+          "size": 25,
+          "c": "green"
+        },
+        {
+          "t": "",
+          "h": 0.3
+        },
+        {
+          "t": "自然语言 → 规则草稿",
+          "c": "ink",
+          "size": 19
+        },
+        {
+          "t": "用户确认 / 版本 / 恢复",
+          "c": "ink",
+          "size": 19
+        },
+        {
+          "t": "内置解析器作为回退通道",
+          "c": "ink",
+          "size": 19
+        }
+      ]
+    },
+    {
+      "type": "box",
+      "x": 1120,
+      "y": 480,
+      "w": 420,
+      "h": 180,
+      "color": "amber",
+      "fill": "amberfill",
+      "pad": [
+        20,
+        20
+      ],
+      "lines": [
+        {
+          "t": "Jev / LLM · 可选增强",
+          "b": 1,
+          "size": 25,
+          "c": "amber"
+        },
+        {
+          "t": "",
+          "h": 0.3
+        },
+        {
+          "t": "Jev：合规意图 / 公告情绪",
+          "c": "ink",
+          "size": 19
+        },
+        {
+          "t": "LLM：自然语言规则编译",
+          "c": "ink",
+          "size": 19
+        },
+        {
+          "t": "不承担数值触发判定",
+          "c": "ink",
+          "size": 19
+        }
+      ]
+    },
+    {
+      "type": "path",
+      "points": [
+        [
+          1330,
+          385
+        ],
+        [
+          1330,
+          410
+        ],
+        [
+          800,
+          410
+        ],
+        [
+          800,
+          480
+        ]
+      ],
+      "color": "green",
+      "width": 2,
+      "r": 8,
+      "flow": {
+        "period": 2.8,
+        "offsets": [
+          0,
+          0.5
+        ],
+        "color": "green",
+        "tail": 12
+      }
+    },
+    {
+      "type": "path",
+      "points": [
+        [
+          1010,
+          545
+        ],
+        [
+          1120,
+          545
+        ]
+      ],
+      "color": "amber",
+      "width": 2,
+      "r": 8,
+      "flow": {
+        "period": 4,
+        "offsets": [
+          0,
+          0.5
+        ],
+        "color": "amber",
+        "tail": 12
+      },
+      "dash": "6 5"
+    },
+    {
+      "type": "path",
+      "points": [
+        [
+          1120,
+          605
+        ],
+        [
+          1010,
+          605
+        ]
+      ],
+      "color": "amber",
+      "width": 2,
+      "r": 8,
+      "flow": {
+        "period": 4,
+        "offsets": [
+          0,
+          0.5
+        ],
+        "color": "amber",
+        "tail": 12
+      },
+      "dash": "6 5"
+    },
+    {
+      "type": "text",
+      "x": 60,
+      "y": 730,
+      "w": 1480,
+      "t": "03 / 取数、判定与持久化",
+      "size": 17,
+      "c": "dim",
+      "b": false
+    },
+    {
+      "type": "box",
+      "x": 60,
+      "y": 770,
+      "w": 420,
+      "h": 180,
+      "color": "blue",
+      "fill": "bluefill",
+      "pad": [
+        20,
+        20
+      ],
+      "lines": [
+        {
+          "t": "数据适配与外部接口",
+          "b": 1,
+          "size": 25,
+          "c": "blue"
+        },
+        {
+          "t": "",
+          "h": 0.3
+        },
+        {
+          "t": "扶摇 REST / iFinD MCP",
+          "c": "ink",
+          "size": 19
+        },
+        {
+          "t": "取数 / 双源核查 / 缓存回退",
+          "c": "ink",
+          "size": 19
+        },
+        {
+          "t": "来源、业务时点、单位与口径",
+          "c": "ink",
+          "size": 19
+        }
+      ]
+    },
+    {
+      "type": "box",
+      "x": 590,
+      "y": 770,
+      "w": 420,
+      "h": 180,
+      "color": "green",
+      "fill": "greenfill",
+      "pad": [
+        20,
+        20
+      ],
+      "lines": [
+        {
+          "t": "确定性引擎与状态机",
+          "b": 1,
+          "size": 25,
+          "c": "green"
+        },
+        {
+          "t": "",
+          "h": 0.3
+        },
+        {
+          "t": "条件比较 / AND / OR",
+          "c": "ink",
+          "size": 19
+        },
+        {
+          "t": "冷却 / 去重 / 降级 / 恢复",
+          "c": "ink",
+          "size": 19
+        },
+        {
+          "t": "原始证据绑定到执行日志",
+          "c": "ink",
+          "size": 19
+        }
+      ]
+    },
+    {
+      "type": "box",
+      "x": 1120,
+      "y": 770,
+      "w": 420,
+      "h": 180,
+      "color": "blue",
+      "fill": "bluefill",
+      "pad": [
+        20,
+        20
+      ],
+      "lines": [
+        {
+          "t": "SQLAlchemy / SQLite",
+          "b": 1,
+          "size": 25,
+          "c": "blue"
+        },
+        {
+          "t": "",
+          "h": 0.3
+        },
+        {
+          "t": "MonitorTask · 监控任务",
+          "c": "ink",
+          "size": 19
+        },
+        {
+          "t": "TaskRuleVersion · 规则版本",
+          "c": "ink",
+          "size": 19
+        },
+        {
+          "t": "TaskExecutionLog · 巡检日志",
+          "c": "ink",
+          "size": 19
+        }
+      ]
+    },
+    {
+      "type": "path",
+      "points": [
+        [
+          270,
+          660
+        ],
+        [
+          270,
+          700
+        ],
+        [
+          800,
+          700
+        ],
+        [
+          800,
+          770
+        ]
+      ],
+      "color": "amber",
+      "width": 2,
+      "r": 8,
+      "flow": {
+        "period": 3.8,
+        "offsets": [
+          0,
+          0.5
+        ],
+        "color": "amber",
+        "tail": 12
+      }
+    },
+    {
+      "type": "path",
+      "points": [
+        [
+          590,
+          595
+        ],
+        [
+          530,
+          595
+        ],
+        [
+          530,
+          745
+        ],
+        [
+          270,
+          745
+        ],
+        [
+          270,
+          770
+        ]
+      ],
+      "color": "blue",
+      "width": 2,
+      "r": 8,
+      "flow": {
+        "period": 3.2,
+        "offsets": [
+          0,
+          0.5
+        ],
+        "color": "blue",
+        "tail": 12
+      }
+    },
+    {
+      "type": "path",
+      "points": [
+        [
+          800,
+          660
+        ],
+        [
+          800,
+          770
+        ]
+      ],
+      "color": "green",
+      "width": 2,
+      "r": 8,
+      "flow": {
+        "period": 2.8,
+        "offsets": [
+          0,
+          0.5
+        ],
+        "color": "green",
+        "tail": 12
+      }
+    },
+    {
+      "type": "path",
+      "points": [
+        [
+          480,
+          850
+        ],
+        [
+          590,
+          850
+        ]
+      ],
+      "color": "blue",
+      "width": 2,
+      "r": 8,
+      "flow": {
+        "period": 2.8,
+        "offsets": [
+          0,
+          0.5
+        ],
+        "color": "blue",
+        "tail": 12
+      }
+    },
+    {
+      "type": "path",
+      "points": [
+        [
+          1010,
+          850
+        ],
+        [
+          1120,
+          850
+        ]
+      ],
+      "color": "blue",
+      "width": 2,
+      "r": 8,
+      "flow": {
+        "period": 2.8,
+        "offsets": [
+          0,
+          0.5
+        ],
+        "color": "blue",
+        "tail": 12
+      }
+    },
+    {
+      "type": "path",
+      "points": [
+        [
+          1330,
+          770
+        ],
+        [
+          1330,
+          720
+        ],
+        [
+          1070,
+          720
+        ],
+        [
+          1070,
+          450
+        ],
+        [
+          910,
+          450
+        ],
+        [
+          910,
+          480
+        ]
+      ],
+      "color": "blue",
+      "width": 2,
+      "r": 8,
+      "flow": {
+        "period": 4,
+        "offsets": [
+          0,
+          0.5
+        ],
+        "color": "blue",
+        "tail": 12
+      }
+    },
+    {
+      "type": "text",
+      "x": 60,
+      "y": 1000,
+      "w": 1480,
+      "t": "生产同域：Cloudflare → Nginx → FastAPI，提供 API 与 frontend/dist 静态页面。",
+      "size": 22,
+      "c": "green",
+      "b": false
+    },
+    {
+      "type": "text",
+      "x": 60,
+      "y": 1040,
+      "w": 1480,
+      "t": "源码与职责分离；也可独立部署前端静态站点，并将 /api 反向代理到后端。",
+      "size": 19,
+      "c": "dim",
+      "b": false
+    },
+    {
+      "type": "log",
+      "x": 60,
+      "y": 1090,
+      "w": 1480,
+      "rows": 3,
+      "padTop": 20,
+      "padBottom": 20,
+      "padLeft": 22,
+      "title": "请求与调度回放 · 示意",
+      "titleX": 22,
+      "titleW": 320,
+      "cols": [
+        {
+          "key": "time",
+          "x": 0
+        },
+        {
+          "key": "who",
+          "x": 160
+        },
+        {
+          "key": "m",
+          "x": 340
+        },
+        {
+          "key": "g",
+          "x": 1380
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "x": 60,
+      "y": 1250,
+      "w": 1480,
+      "t": "流动数据包与日志仅示意调用关系，不代表真实请求、在线状态或性能指标。",
+      "size": 17,
+      "c": "dim",
+      "b": false
+    }
+  ],
+  "credit": {
+    "text": "依据本项目源码与部署配置绘制 · 动画引擎：ythx-101 https://github.com/ythx-101/live-panel-skill",
+    "y": 1295,
+    "size": 14
+  }
+}

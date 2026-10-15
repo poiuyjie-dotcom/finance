@@ -132,6 +132,12 @@ cd backend && pytest -v tests/    # 17 个用例：主链路 / 异常降级 / �
 
 ## 3. 技术架构
 
+[![AlphaRadar 前后端分离技术架构：Vue、REST API、FastAPI、调度、数据源、模型与存储](docs/live-panel/technical.gif)](https://radar.poiuyjie.online/architecture/technical)
+
+[打开技术架构动画](https://radar.poiuyjie.online/architecture/technical) · [高清静态图](docs/live-panel/technical.png) · [配置与复现说明](docs/live-panel/README.md)
+
+图中数据包和日志为调用关系示意，动画使用 [live-panel-skill](https://github.com/ythx-101/live-panel-skill) 制作，不代表生产遥测。
+
 ### 前后端分离与线上部署
 
 | 层次 | 技术与职责 |
