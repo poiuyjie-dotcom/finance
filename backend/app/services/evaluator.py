@@ -211,13 +211,14 @@ async def evaluate_condition(cond: ConditionLeaf) -> ConditionEvaluationDetail:
             res = await da.get_valuation(cond.target_code)
             field = metric
             caliber = "扶摇估值快照（TTM/MRQ）"
-            if res.status == da.STATUS_FAILED or not (res.data or {}).get("item"):
-                cit = _citation(res, field, None, "倍", caliber, tol)
+            raw_val = ((res.data or {}).get("item") or [{}])[0].get(field)
+            if res.status == da.STATUS_FAILED or raw_val is None:
+                cit = _citation(res, field, raw_val, "倍", caliber, tol)
                 return ConditionEvaluationDetail(condition_id=cond.condition_id, label=cond.label, is_met=None,
                                                  actual_value_display="数据异常",
                                                  threshold_display=f"{OP_SYMBOL.get(op, op.value)} {thr} 倍",
                                                  reason_snippet=f"估值数据获取失败：{res.error_detail}", citation=cit)
-            val = float(res.data["item"][0][field])
+            val = float(raw_val)
         is_met = _numeric_compare(val, op, float(thr))
         cit = _citation(res, f"item[0].{field}" if not _is_index(cond) else field, val, "倍", caliber, tol)
         return ConditionEvaluationDetail(
@@ -237,14 +238,17 @@ async def evaluate_condition(cond: ConditionLeaf) -> ConditionEvaluationDetail:
     unit = {"last_price": "元", "pct_chg": "%", "volume": "股", "turnover": "元"}.get(metric, "元")
     caliber = "扶摇指数行情快照" if _is_index(cond) else "扶摇 A 股行情快照（不复权实时价）"
 
-    if res.status == da.STATUS_FAILED or not (res.data or {}).get("item"):
-        cit = _citation(res, field, None, unit, caliber, tol)
+    raw_val = (res.data.get("item") or [{}])[0].get(field)
+    if res.status == da.STATUS_FAILED or raw_val is None:
+        reason = f"行情数据获取失败：{res.error_detail}" if res.status == da.STATUS_FAILED \
+            else f"行情字段 {field} 为空（可能处于盘前/集合竞价阶段，今日尚无成交数据）"
+        cit = _citation(res, field, raw_val, unit, caliber, tol)
         return ConditionEvaluationDetail(condition_id=cond.condition_id, label=cond.label, is_met=None,
                                          actual_value_display="数据异常",
                                          threshold_display=f"{OP_SYMBOL.get(op, op.value)} {thr} {unit}",
-                                         reason_snippet=f"行情数据获取失败：{res.error_detail}", citation=cit)
+                                         reason_snippet=reason, citation=cit)
 
-    val = float(res.data["item"][0][field])
+    val = float(raw_val)
     if res.status == da.STATUS_CONFLICT:
         cit = _citation(res, f"item[0].{field}", val, unit, caliber, tol)
         conflict = res.conflict_with or {}

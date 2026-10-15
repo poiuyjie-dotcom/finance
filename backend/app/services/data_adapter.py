@@ -130,8 +130,12 @@ def market_phase(now: datetime | None = None) -> dict:
 
 
 async def refresh_calendar() -> None:
-    """拉取扶摇交易日历并缓存 12 小时；失败时退化为工作日近似。"""
-    if _calendar_cache["fetched_at"] and (now_bj() - _calendar_cache["fetched_at"]) < timedelta(hours=12):
+    """拉取扶摇交易日历并缓存 12 小时；跨零点后（当日不在缓存集合）立即刷新；
+    失败时退化为工作日近似。"""
+    today = now_bj().strftime("%Y%m%d")
+    if (_calendar_cache["fetched_at"]
+            and (now_bj() - _calendar_cache["fetched_at"]) < timedelta(hours=12)
+            and today in _calendar_cache["days"]):
         return
     r = await _fuyao_get("/api/a-share/calendar/trading-days", source="FUYAO_CALENDAR", use_cache=False)
     days = set()
