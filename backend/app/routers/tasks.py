@@ -2,8 +2,10 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -43,7 +45,8 @@ def _summary(task: MonitorTask, latest_log: TaskExecutionLog | None) -> TaskSumm
         degraded_reason=task.degraded_reason,
         latest_outcome=latest_log.outcome_type if latest_log else None,
         latest_headline=latest_log.headline if latest_log else None,
-        interval_seconds=interval)
+        interval_seconds=interval,
+        conflict_resolution=getattr(task, "conflict_resolution", None))
 
 
 def _latest_log(db: Session, task_id: str) -> TaskExecutionLog | None:
@@ -193,3 +196,31 @@ def delete_task(task_id: str, db: Session = Depends(get_db)):
     db.execute(sa_delete(TaskExecutionLog).where(TaskExecutionLog.task_id == task_id))
     db.delete(task)
     db.commit()
+
+
+class ConflictResolveRequest(BaseModel):
+    mode: Literal["TRUST_PRIMARY", "TRUST_BACKUP", "MANUAL", "CLEAR"]
+    condition_id: str | None = None
+    value: float | None = None
+
+
+@router.post("/tasks/{task_id}/resolve")
+async def resolve_conflict(task_id: str, req: ConflictResolveRequest, db: Session = Depends(get_db)):
+    """双源冲突人工裁决：选信任数据源 / 填入确认值 / 撤销裁决，随后立即按新裁决重评估。"""
+    from datetime import datetime
+
+    task = db.get(MonitorTask, task_id)
+    if not task:
+        raise HTTPException(404, "任务不存在")
+    if req.mode == "CLEAR":
+        task.conflict_resolution = None
+    else:
+        task.conflict_resolution = {"mode": req.mode, "condition_id": req.condition_id,
+                                    "value": req.value, "set_at": datetime.utcnow().isoformat()}
+    task.consecutive_failures = 0
+    if task.status in (MonitorTask.ERROR_HALT, MonitorTask.DEGRADED):
+        task.status = MonitorTask.ACTIVE
+        task.degraded_reason = None
+    db.commit()
+    log = await state_machine.run_evaluation(db, task, respect_schedule=False)
+    return {"resolution": task.conflict_resolution, "re_evaluation": l_to_dict(log)}

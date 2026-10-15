@@ -21,6 +21,14 @@ from .services import scheduler_engine
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
+    # 轻量迁移：旧库补 conflict_resolution 列
+    from sqlalchemy import text
+
+    with engine.begin() as conn:
+        try:
+            conn.execute(text("ALTER TABLE monitor_tasks ADD COLUMN conflict_resolution JSON"))
+        except Exception:  # noqa: BLE001
+            pass  # 列已存在
     db = SessionLocal()
     try:
         seed_if_empty(db)

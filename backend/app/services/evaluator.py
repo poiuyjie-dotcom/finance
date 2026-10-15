@@ -66,8 +66,12 @@ def _fmt(v: Any, unit: str) -> str:
     return f"{v} {unit}".strip()
 
 
-async def evaluate_condition(cond: ConditionLeaf) -> ConditionEvaluationDetail:
-    """评估单个叶子条件，绑定原始字段证据。"""
+async def evaluate_condition(cond: ConditionLeaf, resolution: dict | None = None) -> ConditionEvaluationDetail:
+    """评估单个叶子条件，绑定原始字段证据。
+
+    resolution: 用户对双源冲突的人工裁决（TRUST_PRIMARY/TRUST_BACKUP/MANUAL），
+    存在时冲突条件按裁决值判定并在证据中标注 resolved_by，而非挂起。
+    """
     tol = cond.staleness_tolerance_seconds
     metric = cond.metric_field
     op = cond.operator
@@ -251,13 +255,41 @@ async def evaluate_condition(cond: ConditionLeaf) -> ConditionEvaluationDetail:
     val = float(raw_val)
     if res.status == da.STATUS_CONFLICT:
         cit = _citation(res, f"item[0].{field}", val, unit, caliber, tol)
-        conflict = res.conflict_with or {}
+        conflict = dict(res.conflict_with or {})
+        # 用户裁决：按 TRUST_PRIMARY / TRUST_BACKUP / MANUAL 判定，不挂起
+        applied = None
+        if resolution:
+            if resolution.get("mode") == "TRUST_PRIMARY":
+                applied = "TRUST_PRIMARY"
+            elif resolution.get("mode") == "TRUST_BACKUP" and conflict.get("value") is not None:
+                val = float(conflict["value"])
+                applied = "TRUST_BACKUP"
+            elif (resolution.get("mode") == "MANUAL"
+                  and resolution.get("condition_id") == cond.condition_id
+                  and isinstance(resolution.get("value"), (int, float))):
+                val = float(resolution["value"])
+                applied = "MANUAL"
+        if applied:
+            conflict["resolved_by"] = applied
+            cit.conflict_with = conflict
+            is_met = _numeric_compare(val, op, float(thr))
+            who = {"TRUST_PRIMARY": f"主源 {res.source_name}", "TRUST_BACKUP": f"备源 {conflict.get('source')}",
+                   "MANUAL": "人工确认值"}[applied]
+            return ConditionEvaluationDetail(
+                condition_id=cond.condition_id, label=cond.label, is_met=is_met,
+                actual_value_display=_fmt(val, unit),
+                threshold_display=f"{OP_SYMBOL.get(op, op.value)} {thr} {unit}",
+                reason_snippet=(f"双源冲突（扶摇 {res.data['item'][0][field]} vs {conflict.get('source')} "
+                                f"{conflict.get('value')}，偏差 {conflict.get('diff_pct')}%），已按用户裁决采用{who}={val}判定，"
+                                f"条件{'满足' if is_met else '不满足'}"),
+                citation=cit, gap_pct=_gap_pct(val, op, float(thr)))
         return ConditionEvaluationDetail(
             condition_id=cond.condition_id, label=cond.label, is_met=None,
             actual_value_display=f"{_fmt(val, unit)}（双源冲突挂起）",
             threshold_display=f"{OP_SYMBOL.get(op, op.value)} {thr} {unit}",
             reason_snippet=(f"多源冲突：扶摇 {val} {unit} vs {conflict.get('source')} {conflict.get('value')} {unit}"
-                            f"（偏差 {conflict.get('diff_pct')}%），阈值 {thr} 处于判定敏感区，系统暂停自动判定"),
+                            f"（偏差 {conflict.get('diff_pct')}%），阈值 {thr} 处于判定敏感区，系统暂停自动判定。"
+                            "可在「数据异常处理卡片」中选择信任数据源或填入确认值"),
             citation=cit)
     is_met = _numeric_compare(val, op, float(thr))
     cit = _citation(res, f"item[0].{field}", val, unit, caliber, tol)
@@ -307,12 +339,12 @@ def _compose_group(group: RuleGroup, details: list[ConditionEvaluationDetail]) -
         return False
 
 
-async def evaluate_rule_tree(root: RuleGroup) -> EvaluationResult:
+async def evaluate_rule_tree(root: RuleGroup, resolution: dict | None = None) -> EvaluationResult:
     result = EvaluationResult()
     groups = [root] + _flatten_groups(root)
     for g in groups:
         for cond in g.conditions:
-            detail = await evaluate_condition(cond)
+            detail = await evaluate_condition(cond, resolution)
             result.condition_details.append(detail)
             cit = detail.citation
             if cit.is_stale:

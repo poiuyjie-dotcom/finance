@@ -82,21 +82,31 @@ async def run_evaluation(db: Session, task: MonitorTask, bypass_cooldown: bool =
         db.commit()
         return lg
 
-    # ---- 评估 ----
-    result = await evaluate_rule_tree(rule.rule_tree)
+    # ---- 评估（携带用户对双源冲突的人工裁决）----
+    resolution = getattr(task, "conflict_resolution", None)
+    result = await evaluate_rule_tree(rule.rule_tree, resolution)
 
     # ---- 数据健康度决定降级状态 ----
-    degraded_now = result.has_stale or result.has_conflict or result.has_failure \
+    # 未被用户裁决解决的冲突（已裁决的 conflict 带 resolved_by，不算挂起）；真实接口失败才计熔断
+    unresolved_conflict = any(d.is_met is None and d.citation.conflict_with
+                              and not d.citation.conflict_with.get("resolved_by")
+                              for d in result.condition_details)
+    hard_failure = any(d.is_met is None and d.citation.raw_value is None and not d.citation.conflict_with
+                       for d in result.condition_details)
+    degraded_now = result.has_stale or unresolved_conflict or result.has_failure \
         or result.has_cache_fallback or result.has_mock
     was_degraded = task.status == MonitorTask.DEGRADED
 
     # ---- 冷却与去重判定：仅当"被满足"的条件不依赖降级数据时才正式触发 ----
-    satisfied_on_degraded = any(
-        d.is_met is True and (d.citation.is_stale or d.citation.conflict_with
-                              or "本地缓存回退" in d.citation.source_name
-                              or d.citation.endpoint_or_tool.startswith("mock")
-                              or "离线" in d.citation.source_name)
-        for d in result.condition_details)
+    def _cit_degraded(d):
+        c = d.citation
+        cw = c.conflict_with
+        if cw and cw.get("resolved_by"):
+            cw = None  # 用户已裁决的冲突不再视为降级
+        return c.is_stale or cw or "本地缓存回退" in c.source_name \
+            or c.endpoint_or_tool.startswith("mock") or "离线" in c.source_name
+
+    satisfied_on_degraded = any(d.is_met is True and _cit_degraded(d) for d in result.condition_details)
     can_trigger = result.overall is True and not satisfied_on_degraded
     cooldown_remaining = 0
     if task.cooldown_until:
@@ -105,12 +115,12 @@ async def run_evaluation(db: Session, task: MonitorTask, bypass_cooldown: bool =
     outcome: str
     dedup_fp: str | None = None
 
-    if result.has_conflict:
-        # 双源冲突：无论其余条件是否满足，统一挂起并向用户并列展示双源数值
+    if unresolved_conflict:
+        # 双源冲突且未裁决：无论其余条件是否满足，统一挂起并向用户并列展示双源数值
         outcome = OUTCOME_CONFLICT
         if result.overall is True:
             headline = ("多源数据冲突挂起：其余条件虽已满足，但存在双源价格不一致（偏差超阈值），"
-                        "系统暂停自动触发，请核查原始数据源后手动确认")
+                        "系统暂停自动触发——请在「数据异常处理卡片」中选择信任数据源或填入确认值")
         else:
             headline = "多源数据冲突挂起：系统暂停自动结论，并列展示双源数值供核查"
     elif result.overall is None:
@@ -167,7 +177,8 @@ async def run_evaluation(db: Session, task: MonitorTask, bypass_cooldown: bool =
     elif degraded_now:
         task.status = MonitorTask.DEGRADED
         task.degraded_reason = explanation.uncertainty_and_degradation_note[:500]
-        task.consecutive_failures = task.consecutive_failures + (1 if result.has_failure else 0)
+        # 只有真实接口失败（拿不到任何数据）才计入熔断；冲突挂起/过期是显式保护行为
+        task.consecutive_failures = task.consecutive_failures + (1 if hard_failure else 0)
     elif task.status in (MonitorTask.DEGRADED, MonitorTask.COOLDOWN, MonitorTask.TRIGGERED):
         if was_degraded:
             explanation.inference_list.insert(0, "[RECOVERY] 数据源已恢复正常新鲜度与一致性，退出降级模式。")

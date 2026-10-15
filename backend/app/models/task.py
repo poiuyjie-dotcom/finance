@@ -28,6 +28,8 @@ class MonitorTask(Base):
     last_dedup_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     consecutive_failures: Mapped[int] = mapped_column(Integer, default=0)
     degraded_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # 双源冲突的人工裁决：{mode: TRUST_PRIMARY|TRUST_BACKUP|MANUAL, condition_id, value, set_at}
+    conflict_resolution: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     # ---- 状态机常量 ----
     ACTIVE = "ACTIVE"

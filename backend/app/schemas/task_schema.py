@@ -55,6 +55,7 @@ class TaskSummary(BaseModel):
     latest_outcome: str | None = None
     latest_headline: str | None = None
     interval_seconds: int = 60
+    conflict_resolution: dict | None = None
 
 
 class TaskDetail(TaskSummary):
