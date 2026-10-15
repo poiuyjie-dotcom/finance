@@ -1,18 +1,10 @@
 <script setup>
 import { onMounted, onUnmounted, ref } from 'vue'
 import { api } from './api'
-import TaskList from './components/TaskList.vue'
-import RuleEditor from './components/RuleEditor.vue'
-import Inspector from './components/Inspector.vue'
 import SettingsModal from './components/SettingsModal.vue'
 
 const health = ref(null)
-const tasks = ref([])
-const selectedTask = ref(null)     // { task, current_rule, recent_logs }
-const editRuleId = ref(null)       // 显式进入「编辑规则」模式的任务 id；null = 空态
-const leftCollapsed = ref(false)
 const showSettings = ref(false)
-const refreshKey = ref(0)
 let timer = null
 
 const PHASE_CN = {
@@ -24,27 +16,9 @@ async function refreshHealth() {
   try { health.value = await api.health() } catch (e) { console.warn(e) }
 }
 
-async function refreshTasks() {
-  try { tasks.value = await api.listTasks() } catch (e) { console.warn(e) }
-}
-
-async function selectTask(id) {
-  selectedTask.value = await api.getTask(id)
-}
-
-function onTasksChanged() {
-  refreshTasks()
-  refreshKey.value++
-}
-
-function onEditRule(id) {
-  editRuleId.value = id
-  selectTask(id)
-}
-
 onMounted(() => {
-  refreshHealth(); refreshTasks()
-  timer = setInterval(() => { refreshHealth(); refreshTasks() }, 15000)
+  refreshHealth()
+  timer = setInterval(refreshHealth, 15000)
 })
 onUnmounted(() => clearInterval(timer))
 </script>
@@ -52,7 +26,9 @@ onUnmounted(() => clearInterval(timer))
 <template>
   <header class="topbar">
     <div>
-      <div class="brand">Alpha<em>Radar</em> · 可配置投资监控与风险雷达</div>
+      <router-link to="/" style="text-decoration:none; color:inherit">
+        <div class="brand">Alpha<em>Radar</em> · 可配置投资监控与风险雷达</div>
+      </router-link>
       <div class="brand-sub">自然语言 → 可检查可修改规则 AST · 逐条件触发/未触发归因 · 多源异常降级保护 · 不构成投资建议</div>
     </div>
     <div class="health">
@@ -76,22 +52,7 @@ onUnmounted(() => clearInterval(timer))
     </div>
   </header>
 
-  <main class="layout" :class="{ 'left-collapsed': leftCollapsed }">
-    <div class="col-left">
-      <TaskList :tasks="tasks" :refresh-key="refreshKey" :selected-id="selectedTask?.task?.id"
-                :collapsed="leftCollapsed"
-                @select="selectTask" @changed="onTasksChanged" @edit-rule="onEditRule"
-                @toggle-collapse="leftCollapsed = !leftCollapsed" />
-    </div>
-    <div class="col-mid">
-      <RuleEditor :selected-task="selectedTask" :edit-rule-id="editRuleId"
-                  @changed="onTasksChanged" @created="selectTask" @refresh-detail="selectTask"
-                  @edit-closed="editRuleId = null" />
-    </div>
-    <div class="col-right">
-      <Inspector :selected-task="selectedTask" :refresh-key="refreshKey" @changed="onTasksChanged" @refresh-detail="selectTask" />
-    </div>
-  </main>
+  <router-view />
 
   <footer class="footer-note">
     AI 仅承担「自然语言→规则编译」与「结构化归因解释」；所有数值比较由确定性引擎执行，关键数字可溯源至原始字段与时点。

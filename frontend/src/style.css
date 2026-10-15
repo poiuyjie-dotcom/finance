@@ -184,6 +184,18 @@ textarea { resize: vertical; }
 .example-chip:hover { color: var(--blue); border-color: var(--blue); }
 .example-chip.bad { color: var(--red); border-color: rgba(248,113,113,.4); }
 
+/* 详情页布局 */
+.detail-wrap { padding: 12px 16px 24px; max-width: 1500px; margin: 0 auto; width: 100%; }
+.crumbs { display: flex; gap: 8px; align-items: center; font-size: 12px; margin-bottom: 10px; color: var(--muted); }
+.crumbs a { color: var(--blue); text-decoration: none; }
+.crumbs a:hover { text-decoration: underline; }
+.detail-head { display: flex; gap: 14px; align-items: flex-start; justify-content: space-between; }
+.dh-title { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.dh-actions { display: flex; gap: 7px; flex-wrap: wrap; justify-content: flex-end; }
+.detail-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 12px; align-items: start; margin-top: 12px; }
+@media (max-width: 1100px) { .detail-grid { grid-template-columns: 1fr; } }
+.goto-hint { font-size: 10.5px; color: var(--blue); align-self: center; margin-left: auto; }
+
 .footer-note { text-align: center; color: var(--dim); font-size: 11px; padding: 10px 0 18px; }
 
 /* 左栏折叠窄条 */

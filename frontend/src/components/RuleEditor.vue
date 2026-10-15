@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { api } from '../api'
 
-const props = defineProps({ selectedTask: Object, editRuleId: String })
+const props = defineProps({ selectedTask: Object, editRuleId: String, showNl: { type: Boolean, default: true } })
 const emit = defineEmits(['changed', 'created', 'refreshDetail', 'editClosed'])
 
 const nl = ref('')
@@ -123,8 +123,8 @@ async function doRollback(v) {
 </script>
 
 <template>
-  <!-- ① 主入口：自然语言 -->
-  <div class="panel">
+  <!-- ① 主入口：自然语言（工作台显示；详情页隐藏） -->
+  <div class="panel" v-if="showNl">
     <div class="panel-title">① 自然语言 → 可检查规则 <span class="sub">主入口：输入关注点，AI 编译为可修改的结构化规则</span></div>
     <textarea v-model="nl" rows="2" placeholder="输入关注点，例如：当宁德时代跌破 290 元且换手率大于 3%，或者出现减持公告时提醒我"></textarea>
     <div class="example-chips">
@@ -157,8 +157,8 @@ async function doRollback(v) {
     <div v-if="errMsg" class="banner banner-bad" style="margin-top:9px">操作失败：{{ errMsg }}</div>
   </div>
 
-  <!-- ② 编辑器：空态指引 -->
-  <div class="panel" v-if="mode === 'empty'">
+  <!-- ② 编辑器：空态指引（仅工作台） -->
+  <div class="panel" v-if="mode === 'empty' && showNl">
     <div class="panel-title">② 规则树编辑器</div>
     <div class="empty-guide">
       <div class="empty-step">📌 在上方 <b>①</b> 输入关注点并解析，这里会生成<b>可编辑的规则树草稿</b>（算子 / 阈值 / 口径均可修改）</div>

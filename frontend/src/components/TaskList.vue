@@ -2,8 +2,8 @@
 import { computed } from 'vue'
 import { api } from '../api'
 
-const props = defineProps({ tasks: Array, selectedId: String, refreshKey: Number, collapsed: Boolean })
-const emit = defineEmits(['select', 'changed', 'editRule', 'toggleCollapse'])
+const props = defineProps({ tasks: Array, collapsed: Boolean })
+const emit = defineEmits(['navigate', 'changed', 'toggleCollapse'])
 
 const STATUS = {
   ACTIVE: { cls: 'badge-green', txt: '监控中' },
@@ -26,10 +26,9 @@ function fmtCd(sec) {
   return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`
 }
 
-async function runNow(id) {
-  await api.evaluateNow(id)
+async function runNow(t) {
+  await api.evaluateNow(t.id)
   emit('changed')
-  emit('select', id)
 }
 
 async function togglePause(t) {
@@ -40,7 +39,6 @@ async function togglePause(t) {
 async function clearCooldown(t) {
   await api.setStatus(t.id, 'CLEAR_COOLDOWN')
   emit('changed')
-  emit('select', t.id)
 }
 </script>
 
@@ -60,7 +58,7 @@ async function clearCooldown(t) {
   <!-- 展开态 -->
   <div class="panel" v-else>
     <div class="panel-title">
-      监控任务雷达 <span class="sub">点击查看归因</span>
+      监控任务雷达 <span class="sub">点击进入详情</span>
       <button class="mini" style="margin-left:auto" @click="emit('toggleCollapse')" title="折叠侧栏">«</button>
     </div>
     <div class="stat-row">
@@ -70,9 +68,8 @@ async function clearCooldown(t) {
       <div class="stat"><b style="color:var(--amber)">{{ stats.degraded }}</b><span>降级</span></div>
     </div>
 
-    <div v-for="t in tasks" :key="t.id"
-         class="task-card" :class="{ active: t.id === selectedId, triggered: t.status === 'TRIGGERED' }"
-         @click="emit('select', t.id)">
+    <div v-for="t in tasks" :key="t.id" class="task-card" :class="{ triggered: t.status === 'TRIGGERED' }"
+         @click="emit('navigate', t.id)">
       <div class="task-head">
         <span class="task-name">{{ t.title }}</span>
         <span class="badge" :class="STATUS[t.status]?.cls">{{ STATUS[t.status]?.txt || t.status }}</span>
@@ -85,10 +82,10 @@ async function clearCooldown(t) {
       </div>
       <div class="task-outcome" v-if="t.latest_headline">{{ t.latest_headline }}</div>
       <div class="task-actions" @click.stop>
-        <button class="mini" @click="runNow(t.id)">立即巡检</button>
-        <button class="mini" @click="emit('editRule', t.id)">编辑规则</button>
+        <button class="mini" @click="runNow(t)">立即巡检</button>
         <button class="mini" v-if="t.status === 'COOLDOWN'" @click="clearCooldown(t)">解除冷却</button>
         <button class="mini" @click="togglePause(t)">{{ t.status === 'PAUSED' ? '恢复' : '暂停' }}</button>
+        <span class="goto-hint">详情 ›</span>
       </div>
     </div>
   </div>

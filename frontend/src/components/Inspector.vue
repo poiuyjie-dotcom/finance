@@ -2,13 +2,10 @@
 import { computed, ref } from 'vue'
 import { api } from '../api'
 
-const props = defineProps({ selectedTask: Object, refreshKey: Number })
+const props = defineProps({ selectedTask: Object })
 const emit = defineEmits(['changed', 'refreshDetail'])
 
 const citation = ref(null)   // 溯源弹层
-const chaosMode = ref('NORMAL')
-const injecting = ref(false)
-const chaosHint = ref('')
 
 const OUTCOME_CN = {
   TRIGGERED_ALERT: { cls: 'badge-red', txt: '已触发提醒' },
@@ -32,39 +29,19 @@ async function runNow() {
   await api.evaluateNow(props.selectedTask.task.id)
   emit('changed'); emit('refreshDetail', props.selectedTask.task.id)
 }
-
-async function inject(mode) {
-  injecting.value = true
-  try {
-    const r = await api.faultInject(mode)
-    chaosMode.value = mode
-    chaosHint.value = r.hint
-    if (latest.value) await runNow()
-  } finally { injecting.value = false }
-}
 </script>
 
 <template>
   <div class="panel">
-    <div class="panel-title">异常模拟控制台 <span class="sub">演示降级与恢复（评分点）</span></div>
-    <div style="display:flex; gap:6px; flex-wrap:wrap">
-      <button class="mini" :class="{ primary: chaosMode === 'NORMAL' }" @click="inject('NORMAL')" :disabled="injecting">正常实时流</button>
-      <button class="mini" :class="{ primary: chaosMode === 'STALE_DATA' }" @click="inject('STALE_DATA')" :disabled="injecting">模拟数据过期(+45min)</button>
-      <button class="mini" :class="{ primary: chaosMode === 'SOURCE_CONFLICT' }" @click="inject('SOURCE_CONFLICT')" :disabled="injecting">模拟双源价格冲突</button>
-      <button class="mini" :class="{ primary: chaosMode === 'API_TIMEOUT' }" @click="inject('API_TIMEOUT')" :disabled="injecting">模拟上游接口超时</button>
-    </div>
-    <div v-if="chaosHint" class="banner banner-info" style="margin:9px 0 0; font-size:11px">{{ chaosHint }}</div>
-  </div>
-
-  <div class="panel">
     <div class="panel-title">
       为什么触发 / 未触发 · 逐条件归因
-      <span class="sub">{{ selectedTask?.task?.title || '未选中任务' }} · v{{ selectedTask?.task?.current_version }}</span>
+      <span class="sub">v{{ selectedTask?.task?.current_version }} · 最近 {{ logs.length }} 次巡检</span>
       <button class="mini" style="margin-left:auto" @click="runNow" v-if="selectedTask">立即巡检</button>
     </div>
 
-    <div v-if="!latest" style="color:var(--dim); font-size:12px; padding:20px 0; text-align:center">
-      左侧选择任务并点击「立即巡检」后，此处展示逐条件实测对比与字段级溯源。
+    <div v-if="!latest" style="color:var(--dim); font-size:12px; padding:26px 0; text-align:center">
+      <span v-if="selectedTask" class="spin"></span>
+      {{ selectedTask ? ' 首次巡检进行中…' : '加载任务详情…' }}
     </div>
 
     <template v-else>
