@@ -14,6 +14,8 @@
 
 ## 产品截图
 
+[观看 180 秒无讲解操作演示](https://radar.poiuyjie.online/demo/alpharadar-demo-180s.mp4)
+
 ### 当前页面与操作流程（2026-10-15）
 
 - **监控总览 `/`**：状态统计、优先关注、任务搜索与筛选，快速进入任务详情。
@@ -29,27 +31,34 @@
 
 ![新版条件与证据](screenshots/redesign-detail.png)
 
-以下截图保留作原版功能记录。
+<details>
+<summary>查看新版完整流程：规则创建、证据追溯、版本与异常验证</summary>
 
-**工作台（首页）：任务雷达 · 自然语言创建监控 · 异常模拟控制台 —— 点击任务卡进入详情页**
+**自然语言生成组合规则，用户检查 AND / OR 条件与调度后确认启动。**
 
-![三栏工作台](screenshots/01-workbench.png)
+![组合规则检查与创建](screenshots/current-create.png)
 
-**任务详情页（/task/:id）：任务头部与快捷操作 · 逐条件归因 · 当前规则只读视图与编辑**
+**每条条件都能追溯数据来源、原始字段、单位、业务时点和拉取时点。**
 
-![任务详情页](screenshots/05-task-detail.png)
+![字段级原始证据](screenshots/current-evidence.png)
 
-**为什么触发 / 未触发：逐条件实测对比 + 字段级原始证据溯源（数据源 / 接口 / 原始字段 / 双时点 / 单位 / 口径）**
+**规则修改形成新版本，可查看差异并恢复历史版本。**
 
-![字段级溯源卡片](screenshots/02-evidence-citation.png)
+![版本变化与恢复](screenshots/current-versions.png)
 
-**合规双护栏：确定性正则护栏 + Jev（TypeSafe 系统一模型）语义护栏独立判定，拦截/放行决策由代码执行**
+**双源冲突时挂起自动判定，明确展示降级原因。**
 
-![合规拦截与Jev语义护栏](screenshots/03-compliance-jev.png)
+![双源冲突验证](screenshots/current-conflict.png)
 
-**双源数据冲突降级：挂起自动判定，并列展示扶摇 vs iFinD 双源数值、时点与偏差百分比，绝不静默任选其一**
+**行情过期时标记数据待核查，并保留可追溯的降级解释。**
 
-![双源冲突降级](screenshots/04-source-conflict.png)
+![数据过期验证](screenshots/current-stale.png)
+
+**独立演示环境验证数据异常与合规边界；数据来源、离线回退和模拟状态均保留界面标识。**
+
+![运行验证与合规拦截](screenshots/current-validation.png)
+
+</details>
 
 ## 1. 快速启动（一键）
 
@@ -97,7 +106,7 @@ cd frontend && npm install && npm run dev
 ### 1.3 运行测试
 
 ```bash
-cd backend && pytest -v tests/    # 11 个用例：主链路 / 异常降级 / 合规边界
+cd backend && pytest -v tests/    # 17 个用例：主链路 / 异常降级 / 合规边界 / 模型健康状态
 ```
 
 ## 2. 目标用户与核心痛点
@@ -121,7 +130,7 @@ cd backend && pytest -v tests/    # 11 个用例：主链路 / 异常降级 / �
               ▼
      state_machine（布尔合成 → 冷却/去重/降级判定 → 状态流转 → 版本钩子）
               ▼
-     TaskExecutionLog（Why/Why-Not 快照：事实/推断/不确定性三段式解释）──▶ 前端三栏工作台
+     TaskExecutionLog（Why/Why-Not 快照：事实/推断/不确定性三段式解释）──▶ 监控总览与任务详情
 ```
 
 ### 3.1 统一规则模型（`backend/app/schemas/rule_ast.py`）
@@ -149,7 +158,7 @@ cd backend && pytest -v tests/    # 11 个用例：主链路 / 异常降级 / �
 
 **铁律：凡依赖降级数据的巡检，outcome 一律不得为 `NOT_TRIGGERED_NORMAL` / 正式触发。**
 
-顶部「异常模拟控制台」可一键注入上述三类故障用于演示与测试。
+「运行验证」页面可注入上述三类故障用于演示与测试。
 
 ## 4. AI 的角色与合规边界
 
@@ -209,8 +218,8 @@ alpharadar/
 │   │   │                           # data_adapter / chaos_injector / compliance_guard / scheduler_engine
 │   │   ├── routers/                # tasks / datasources / simulator
 │   │   └── mock_data/              # 高仿真离线回退数据（显式标注）
-│   └── tests/                      # 11 个用例：主链路/降级/合规
-├── frontend/                       # Vue 3 + Vite SPA（三栏工作台；dist/ 为随仓库提交的预构建产物）
+│   └── tests/                      # 17 个用例：主链路/降级/合规/模型状态
+├── frontend/                       # Vue 3 + Vite SPA（多页监控工作台；dist/ 为随仓库提交的预构建产物）
 ├── start.sh / start.bat            # 一键安装并启动
 ├── README.md / AI_USAGE_AND_VERIFICATION.md / TEST_SPECIFICATION.md
 └── backend/.env.example

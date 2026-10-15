@@ -62,6 +62,14 @@ async def architecture_diagram():
     return FileResponse(Path(__file__).resolve().parents[2] / "docs" / "live-panel" / "index.html")
 
 
+@app.get("/demo/alpharadar-demo-180s.mp4", include_in_schema=False)
+async def product_demo_video():
+    return FileResponse(
+        Path(__file__).resolve().parents[2] / "docs" / "demo" / "alpharadar-demo-180s.mp4",
+        media_type="video/mp4",
+    )
+
+
 # ---- 生产环境：托管前端静态产物（单进程，无跨域）----
 # 优先使用本地构建目录 frontend_dist（存在则说明是 Docker/本地 npm run build 产物），
 # 否则回退到仓库内已提交的预构建产物 frontend/dist，保证「pip install + uvicorn」即可完整运行
