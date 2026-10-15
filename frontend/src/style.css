@@ -19,6 +19,38 @@
   --violet-bg: rgba(167, 139, 250, 0.12);
   --gray: #94a3b8;
   --gray-bg: rgba(148, 163, 184, 0.12);
+  --overlay: rgba(3, 7, 15, 0.7);
+  --code-bg: #060a14;
+  --code-text: #34d399;
+}
+
+/* 跟随系统浅色主题 */
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f2f5fa;
+    --panel: #ffffff;
+    --panel2: #f7f9fc;
+    --border: #e3e9f2;
+    --border2: #c7d2e0;
+    --text: #1e2b3f;
+    --muted: #5a6b83;
+    --dim: #8a99af;
+    --green: #059669;
+    --green-bg: rgba(5, 150, 105, 0.10);
+    --red: #dc2626;
+    --red-bg: rgba(220, 38, 38, 0.08);
+    --amber: #b45309;
+    --amber-bg: rgba(217, 119, 6, 0.10);
+    --blue: #2563eb;
+    --blue-bg: rgba(37, 99, 235, 0.08);
+    --violet: #6d28d9;
+    --violet-bg: rgba(109, 40, 217, 0.08);
+    --gray: #64748b;
+    --gray-bg: rgba(100, 116, 139, 0.10);
+    --overlay: rgba(30, 43, 63, 0.35);
+    --code-bg: #f0f4f8;
+    --code-text: #0f766e;
+  }
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -129,13 +161,13 @@ textarea { resize: vertical; }
 .banner-good { border-color: rgba(52, 211, 153, 0.4); background: var(--green-bg); color: var(--green); }
 
 /* 溯源弹层 */
-.cite-pop { position: fixed; inset: 0; background: rgba(3, 7, 15, 0.7); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.cite-pop { position: fixed; inset: 0; background: var(--overlay); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 20px; }
 .cite-card { background: var(--panel); border: 1px solid var(--border2); border-radius: 12px; padding: 16px 18px; max-width: 560px; width: 100%; max-height: 80vh; overflow: auto; }
 .cite-card h3 { font-size: 13px; margin-bottom: 10px; color: var(--blue); }
 .kv { display: grid; grid-template-columns: 130px 1fr; gap: 4px 10px; font-size: 12px; }
 .kv dt { color: var(--dim); }
 .kv dd { word-break: break-all; }
-.raw-box { background: #060a14; border: 1px solid var(--border); border-radius: 7px; padding: 8px 10px; font-family: "JetBrains Mono", Consolas, monospace; font-size: 11px; color: var(--green); margin-top: 8px; white-space: pre-wrap; word-break: break-all; }
+.raw-box { background: var(--code-bg); border: 1px solid var(--border); border-radius: 7px; padding: 8px 10px; font-family: "JetBrains Mono", Consolas, monospace; font-size: 11px; color: var(--code-text); margin-top: 8px; white-space: pre-wrap; word-break: break-all; }
 
 /* 版本 diff */
 .diff-item { display: flex; gap: 8px; padding: 6px 9px; border-radius: 7px; background: var(--panel2); margin-bottom: 6px; font-size: 11.5px; }
